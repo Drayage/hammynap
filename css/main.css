@@ -509,6 +509,7 @@ html, body {
   text-align: center;
   padding: 0 8px 6px;
   line-height: 1.3;
+  min-height: 1.6em;
 }
 
 /* ---- 손패 ---- */
@@ -524,7 +525,7 @@ html, body {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 4px 6px 4px;
   align-items: flex-end;
 }
 

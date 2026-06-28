@@ -240,9 +240,8 @@ class Renderer {
     document.querySelectorAll('.card').forEach(c => c.classList.remove('card--selected'));
     el.classList.add('card--selected');
 
-    if (this._cardDescEl && card.descKo) {
-      this._cardDescEl.textContent = card.descKo;
-      this._cardDescEl.style.display = '';
+    if (this._cardDescEl) {
+      this._cardDescEl.textContent = card.descKo || '';
     }
 
     if (card.targetType === 'none') {
@@ -271,7 +270,11 @@ class Renderer {
 
     if (validTargets.length === 0) {
       this._showMessage('사용할 수 있는 대상이 없습니다.', 'warn');
-      this._clearSelection(state);
+      this._selectedCard = null;
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('card--selected'));
+      document.querySelectorAll('.hamster').forEach(h => {
+        h.classList.remove('hamster--targetable', 'hamster--untargetable');
+      });
     }
   }
 
@@ -314,7 +317,7 @@ class Renderer {
     document.querySelectorAll('.hamster').forEach(h => {
       h.classList.remove('hamster--targetable', 'hamster--untargetable');
     });
-    if (this._cardDescEl) this._cardDescEl.style.display = 'none';
+    if (this._cardDescEl) this._cardDescEl.textContent = '';
   }
 
   _updateTurnIndicator(state) {
