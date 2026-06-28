@@ -31,10 +31,39 @@
         </div>
       </section>
 
-      <section class="mode-section mode-section--online">
-        <h2 class="section-title">온라인 <span class="badge-soon">준비 중</span></h2>
-        <div class="mode-buttons">
-          <button class="btn btn--mode btn--disabled" disabled>🌐 온라인 대결</button>
+      <section class="mode-section">
+        <h2 class="section-title">온라인</h2>
+
+        <div id="online-buttons" class="mode-buttons">
+          <button id="btn-create-room" class="btn btn--mode">
+            🏠 방 만들기
+          </button>
+          <button id="btn-show-join" class="btn btn--mode">
+            🚪 방 참가
+          </button>
+        </div>
+
+        <!-- 방 만든 후: 코드 표시 + 대기 -->
+        <div id="online-waiting" style="display:none">
+          <div class="room-code-box">
+            <div class="room-code-label">방 코드</div>
+            <div id="room-code-value" class="room-code-value">-----</div>
+            <button id="btn-copy-code" class="btn btn--small">복사</button>
+          </div>
+          <div id="online-status-text" class="online-status-text">상대방 참가 대기 중…</div>
+          <button id="btn-cancel-room" class="btn btn--text">취소</button>
+        </div>
+
+        <!-- 방 참가: 코드 입력 -->
+        <div id="online-join-panel" style="display:none">
+          <div class="join-input-row">
+            <input id="room-code-input" class="room-code-input"
+                   placeholder="방 코드 (예: ABCDE)" maxlength="5"
+                   autocomplete="off" spellcheck="false">
+            <button id="btn-join-confirm" class="btn btn--primary">참가</button>
+          </div>
+          <div id="join-error" class="join-error" style="display:none"></div>
+          <button id="btn-cancel-join" class="btn btn--text">취소</button>
         </div>
       </section>
 
@@ -151,11 +180,11 @@
           <h3 class="rules-section-title">카드 설명</h3>
           <div class="rules-cards">
             <div class="rules-card-row"><span class="rc-icon">🛏️</span><div><strong>이불 덮기</strong><br>내 햄스터 1마리를 재웁니다</div></div>
-            <div class="rules-card-row"><span class="rc-icon">📢</span><div><strong>큰 소음</strong><br>방음 케이스가 없는 모든 잠든 햄스터를 깨웁니다</div></div>
-            <div class="rules-card-row"><span class="rc-icon">📦</span><div><strong>방음 케이스</strong><br>내 햄스터를 케이스에 넣어 큰 소음을 막습니다</div></div>
-            <div class="rules-card-row"><span class="rc-icon">💤</span><div><strong>이불 치우기</strong><br>잠든 햄스터(케이스·잠금 없는)의 이불을 치웁니다</div></div>
-            <div class="rules-card-row"><span class="rc-icon">🔒</span><div><strong>케이스 잠금</strong><br>방음 케이스에 자물쇠를 달아 이불 치우기를 막습니다</div></div>
-            <div class="rules-card-row"><span class="rc-icon">🔨</span><div><strong>망치</strong><br>방음 케이스(잠금 포함)를 파괴합니다. 물병이 있으면 막힙니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">📢</span><div><strong>큰 소음</strong><br>수면캡슐이 없는 모든 잠든 햄스터를 깨웁니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">📦</span><div><strong>수면캡슐</strong><br>내 햄스터를 캡슐에 넣어 큰 소음을 막습니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">💤</span><div><strong>이불 치우기</strong><br>잠든 햄스터(캡슐·잠금 없는)의 이불을 치웁니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">🔒</span><div><strong>케이스 잠금</strong><br>수면캡슐에 자물쇠를 달아 이불 치우기를 막습니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">🔨</span><div><strong>망치</strong><br>수면캡슐(잠금 포함)을 파괴합니다. 물병이 있으면 막힙니다</div></div>
             <div class="rules-card-row"><span class="rc-icon">💧</span><div><strong>케이스 강화</strong><br>케이스에 물병을 달아 망치 공격 1회를 막습니다</div></div>
             <div class="rules-card-row"><span class="rc-icon">🎒</span><div><strong>배낭</strong><br>리본이 달린 내 햄스터에 배낭을 달아 손패 최대 크기를 +1 합니다. 리본 제거 시 배낭도 함께 사라집니다 <em>(확장)</em></div></div>
             <div class="rules-card-row"><span class="rc-icon">🎀</span><div><strong>리본</strong><br>어느 햄스터에나 리본을 달 수 있습니다. 리본 달린 햄스터는 잠들지 않습니다 <em>(확장)</em></div></div>
@@ -194,6 +223,10 @@
     </div>
   </div>
 
+  <!-- Firebase compat SDK (global namespace, no ES modules) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
   <script src="js/data/cards.js"></script>
   <script src="js/data/hamsters.js"></script>
   <script src="js/engine/StateManager.js"></script>
@@ -205,6 +238,7 @@
   <script src="js/ui/CardAnimator.js"></script>
   <script src="js/ui/Renderer.js"></script>
   <script src="js/ui/SoundManager.js"></script>
+  <script src="js/firebase/Sync.js"></script>
   <script src="js/records/RecordManager.js"></script>
   <script src="js/records/RecordViewer.js"></script>
   <script src="js/main.js"></script>

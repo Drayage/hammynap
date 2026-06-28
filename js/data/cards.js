@@ -54,7 +54,7 @@ const CARDS = {
 
   soundproofCase: {
     id: 'soundproofCase',
-    nameKo: '방음 케이스',
+    nameKo: '수면캡슐',
     emoji: '📦',
     expansionOnly: false,
     deckCount: 9,

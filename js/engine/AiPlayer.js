@@ -111,7 +111,27 @@ class AiPlayer {
         continue;
       }
 
-      const targets = getValidTargets(state, this._id, cardId);
+      let targets = getValidTargets(state, this._id, cardId);
+
+      // ribbon: 자신 햄스터 우선; 상대에게 주면 이기는 경우 제외
+      if (cardId === 'ribbon') {
+        const ownTargets = targets.filter(t => t.playerId === this._id);
+        if (ownTargets.length > 0) {
+          targets = ownTargets;
+        } else {
+          targets = targets.filter(t => {
+            const a = { type: 'PLAY_CARD', playerId: this._id, cardId, targetPlayerId: t.playerId, targetHamsterId: t.hamsterId };
+            return checkWin(applyAction(state, a)) !== t.playerId;
+          });
+        }
+      }
+
+      // escape: 상대 햄스터 우선 (리본 제거는 방어용)
+      if (cardId === 'escape') {
+        const oppTargets = targets.filter(t => t.playerId !== this._id);
+        if (oppTargets.length > 0) targets = oppTargets;
+      }
+
       if (targets.length > 0) {
         return { cardId, targetPlayerId: targets[0].playerId, targetHamsterId: targets[0].hamsterId };
       }

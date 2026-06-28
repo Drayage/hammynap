@@ -72,10 +72,19 @@ class Renderer {
       }
     }
 
-    this._renderHand(next);
+    const myId = this._myPlayerId;
+    const myHandChanged = JSON.stringify(prev.players[myId]?.hand) !== JSON.stringify(next.players[myId]?.hand);
+    const isOpponentAction = action?.playerId != null && action.playerId !== myId;
+
+    if (isOpponentAction && !myHandChanged) {
+      this._refreshHandPlayability(next);
+    } else {
+      this._renderHand(next);
+      this._clearSelection(next);
+    }
+
     this._updateTurnIndicator(next);
     this._updateDeckCount(next);
-    this._clearSelection(next);
   }
 
   _initialRender(state) {
@@ -193,6 +202,18 @@ class Renderer {
     if (card.targetType === 'none') return true;
     if (card.targetType === 'all') return countAffected(state, card, playerId) > 0;
     return getValidTargets(state, playerId, cardId).length > 0;
+  }
+
+  _refreshHandPlayability(state) {
+    if (!this._handEl || !this._myPlayerId) return;
+    const isRealtime = state.mode?.includes('realtime');
+    const isMyTurn = state.currentPlayer === this._myPlayerId;
+    const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
+    const canAct = isRealtime || isMyTurn || isLuckyBirdPhase;
+    this._handEl.querySelectorAll('.card[data-card-id]').forEach(el => {
+      el.classList.toggle('card--playable',
+        canAct && this._isCardPlayable(state, this._myPlayerId, el.dataset.cardId));
+    });
   }
 
   _onCardClick(cardId, el) {

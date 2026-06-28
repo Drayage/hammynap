@@ -88,9 +88,7 @@ html, body {
   gap: 12px;
 }
 
-.mode-section--online .mode-buttons {
-  opacity: 0.5;
-}
+/* (online section no longer disabled) */
 
 /* ---- 버튼 ---- */
 .btn {
@@ -192,6 +190,82 @@ html, body {
 .setting-check { width: 20px; height: 20px; cursor: pointer; }
 
 .lobby-actions { text-align: center; }
+
+/* ---- 온라인 UI ---- */
+.room-code-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-bg);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+
+.room-code-label {
+  font-size: 0.8rem;
+  color: var(--color-text-soft);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.room-code-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: var(--color-primary-d);
+  flex: 1;
+  text-align: center;
+  font-family: monospace;
+}
+
+.online-status-text {
+  font-size: 0.88rem;
+  color: var(--color-text-soft);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.online-status-text--connected {
+  color: #2E7D32;
+  font-weight: 700;
+}
+
+.join-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.room-code-input {
+  flex: 1;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-btn);
+  padding: 10px 14px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  font-family: monospace;
+  text-transform: uppercase;
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-align: center;
+}
+
+.room-code-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.join-error {
+  font-size: 0.85rem;
+  color: #B71C1C;
+  background: var(--color-error);
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 6px;
+}
 
 /* ---- 게임 헤더 ---- */
 .game-header {
