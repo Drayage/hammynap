@@ -111,8 +111,6 @@ function canDiscardAllDraw(state, playerId) {
     if (card.targetType === 'all') {
       if (countAffected(state, card, playerId) > 0) return false;
     } else {
-      // targetOwner 'any' 햄스터 카드(리본/리본제거)는 강제 플레이 아님 — 항상 타겟이 존재해서 3장버리기를 막으면 안 됨
-      if (card.targetOwner === 'any') continue;
       if (getValidTargets(state, playerId, cardId).length > 0) return false;
     }
   }
