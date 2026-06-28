@@ -4,6 +4,7 @@ class Renderer {
     this._animator = new CardAnimator();
     this._selectedCard = null;
     this._myPlayerId = null;
+    this._lastActions = {};
 
     this._root        = document.getElementById('game-board');
     this._handEl      = document.getElementById('my-hand');
@@ -24,6 +25,13 @@ class Renderer {
     if (!prev) {
       this._initialRender(next);
       return;
+    }
+
+    // 마지막 행동 배지 업데이트
+    if (action && action.playerId &&
+        (action.type === 'PLAY_CARD' || action.type === 'DISCARD_CARD' || action.type === 'DISCARD_ALL_DRAW')) {
+      this._lastActions[action.playerId] = action;
+      this._updateActionBadge(action.playerId, action);
     }
 
     // 햄스터 업데이트
@@ -63,7 +71,12 @@ class Renderer {
 
       const nameEl = document.createElement('div');
       nameEl.className = 'player-name';
-      nameEl.textContent = player.name;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = player.name;
+      nameEl.appendChild(nameSpan);
+      const badgeSpan = document.createElement('span');
+      badgeSpan.className = 'player-action-badge';
+      nameEl.appendChild(badgeSpan);
       zone.appendChild(nameEl);
 
       const hamsterRow = document.createElement('div');
@@ -167,15 +180,15 @@ class Renderer {
     el.classList.add('card--selected');
 
     if (card.targetType === 'none') {
-      this._engine.playCard(this._myPlayerId, cardId);
-      this._animator.playCard(el, null, null);
+      const result = this._engine.playCard(this._myPlayerId, cardId);
+      if (result.ok) this._animator.playCard(el, null, null);
       this._selectedCard = null;
       return;
     }
 
     if (card.targetType === 'all') {
-      this._engine.playCard(this._myPlayerId, cardId);
-      this._animator.playCard(el, null, null);
+      const result = this._engine.playCard(this._myPlayerId, cardId);
+      if (result.ok) this._animator.playCard(el, null, null);
       this._selectedCard = null;
       return;
     }
@@ -209,6 +222,24 @@ class Renderer {
     this._animator.playCard(cardEl, hamsterEl, null);
     this._engine.playCard(this._myPlayerId, this._selectedCard, targetPlayerId, targetHamsterId);
     this._selectedCard = null;
+  }
+
+  _updateActionBadge(playerId, action) {
+    const zone = document.querySelector(`[data-player-id="${playerId}"]`);
+    if (!zone) return;
+    const badge = zone.querySelector('.player-action-badge');
+    if (!badge) return;
+    let text = '';
+    if (action.type === 'PLAY_CARD') {
+      const card = CARDS[action.cardId];
+      if (card) text = `${card.emoji} ${card.nameKo}`;
+    } else if (action.type === 'DISCARD_CARD') {
+      const card = CARDS[action.cardId];
+      text = card ? `✕ ${card.emoji}` : '✕';
+    } else if (action.type === 'DISCARD_ALL_DRAW') {
+      text = '♻️ 전부 버리기';
+    }
+    badge.textContent = text;
   }
 
   _clearSelection(state) {
