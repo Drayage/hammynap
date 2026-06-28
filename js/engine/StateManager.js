@@ -146,14 +146,13 @@ const effectHandlers = {
       }));
     }
 
-    // 햄스터 기상 시 배낭 제거
-    if (effect.field === 'sleeping' && effect.value === false) {
-      s = updateHamster(s, ctx.targetPlayerId, ctx.targetHamsterId, h => {
-        if (!h.attachments.backpack) return h;
-        return { ...h, attachments: { ...h.attachments, backpack: false } };
-      });
-      const hamster = getHamster(state, ctx.targetPlayerId, ctx.targetHamsterId);
+    // 리본 제거 시 배낭도 함께 제거 (배낭은 리본 햄스터에게만 부착 가능)
+    if (effect.field === 'ribbon' && effect.value === false) {
+      const hamster = getHamster(s, ctx.targetPlayerId, ctx.targetHamsterId);
       if (hamster?.attachments.backpack) {
+        s = updateHamster(s, ctx.targetPlayerId, ctx.targetHamsterId, h => ({
+          ...h, attachments: { ...h.attachments, backpack: false }
+        }));
         s = {
           ...s,
           players: {

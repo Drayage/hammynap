@@ -8,7 +8,8 @@ const CARDS = {
     targetType: 'hamster',
     targetOwner: 'self',
     targetConditions: [
-      { field: 'sleeping', value: false }
+      { field: 'sleeping', value: false },
+      { field: 'attachments.ribbon', value: false }
     ],
     blockedBy: [],
     effects: [
@@ -25,7 +26,8 @@ const CARDS = {
     targetType: 'hamster',
     targetOwner: 'opponent',
     targetConditions: [
-      { field: 'sleeping', value: true }
+      { field: 'sleeping', value: true },
+      { field: 'attachments.ribbon', value: false }
     ],
     blockedBy: ['caseLock'],
     effects: [
@@ -44,7 +46,7 @@ const CARDS = {
     targetConditions: [
       { field: 'sleeping', value: true }
     ],
-    blockedBy: ['soundproofCase'],
+    blockedBy: ['soundproofCase', 'ribbon'],
     effects: [
       { type: 'setField', field: 'sleeping', value: false }
     ]
@@ -78,7 +80,8 @@ const CARDS = {
     targetConditions: [
       { field: 'sleeping', value: true },
       { field: 'attachments.soundproofCase', value: true },
-      { field: 'attachments.caseLock', value: false }
+      { field: 'attachments.caseLock', value: false },
+      { field: 'attachments.ribbon', value: false }
     ],
     blockedBy: [],
     effects: [
@@ -182,7 +185,7 @@ const CARDS = {
     targetType: 'hamster',
     targetOwner: 'self',
     targetConditions: [
-      { field: 'sleeping', value: true },
+      { field: 'attachments.ribbon', value: true },
       { field: 'attachments.backpack', value: false }
     ],
     blockedBy: [],
