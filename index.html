@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>햄스터 낮잠 🐹</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+  <!-- ===== 로비 뷰 ===== -->
+  <div id="view-lobby" class="view">
+    <header class="lobby-header">
+      <h1 class="logo">🐹 햄스터 낮잠</h1>
+      <p class="logo-sub">햄스터를 모두 재우면 승리!</p>
+    </header>
+
+    <main class="lobby-main">
+      <section class="mode-section">
+        <h2 class="section-title">싱글플레이</h2>
+        <div class="mode-buttons">
+          <button id="btn-start-single-ai" class="btn btn--mode">
+            🤖 AI와 대결
+          </button>
+          <button id="btn-start-passplay" class="btn btn--mode">
+            🤝 같이 하기<br><small>pass-and-play</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="mode-section mode-section--online">
+        <h2 class="section-title">온라인 <span class="badge-soon">준비 중</span></h2>
+        <div class="mode-buttons">
+          <button class="btn btn--mode btn--disabled" disabled>🌐 온라인 대결</button>
+        </div>
+      </section>
+
+      <div class="advanced-row">
+        <button id="advanced-toggle" class="btn btn--text">⚙️ 고급 설정</button>
+      </div>
+
+      <section id="advanced-panel" class="advanced-panel" style="display:none">
+        <div class="setting-row">
+          <label for="setting-players">인원 수</label>
+          <select id="setting-players" class="setting-select">
+            <option value="2" selected>2인</option>
+            <option value="3">3인</option>
+            <option value="4">4인</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label for="setting-hamsters">햄스터 수 (0=자동)</label>
+          <input id="setting-hamsters" type="number" min="0" max="6" value="0" class="setting-input">
+        </div>
+        <div class="setting-row">
+          <label for="setting-expansion">확장팩 포함</label>
+          <input id="setting-expansion" type="checkbox" class="setting-check">
+        </div>
+        <div class="setting-row">
+          <label for="setting-realtime">실시간 모드</label>
+          <input id="setting-realtime" type="checkbox" class="setting-check">
+        </div>
+      </section>
+
+      <div class="lobby-actions">
+        <button id="btn-open-records" class="btn btn--text">📋 게임 기록</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===== 게임 뷰 ===== -->
+  <div id="view-game" class="view" style="display:none">
+    <header class="game-header">
+      <div id="turn-indicator" class="turn-indicator">내 턴</div>
+      <div id="deck-count" class="deck-count">덱: 0장</div>
+    </header>
+
+    <div id="game-message" class="game-message" style="display:none"></div>
+
+    <main id="game-board" class="game-board"></main>
+
+    <footer class="hand-area">
+      <div id="my-hand" class="hand"></div>
+    </footer>
+
+    <!-- 게임 종료 오버레이 -->
+    <div id="game-over-overlay" class="game-over-overlay" style="display:none">
+      <div class="game-over-box">
+        <div class="game-over__message"></div>
+        <button id="btn-back-to-lobby" class="btn btn--primary">로비로 돌아가기</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== 패스 화면 (pass-and-play) ===== -->
+  <div id="view-pass-screen" class="view view--pass" style="display:none">
+    <div class="pass-screen">
+      <div class="pass-screen__icon">🐹</div>
+      <div class="pass-screen__message">
+        <strong id="pass-player-name"></strong>님 차례입니다<br>
+        기기를 넘겨주세요
+      </div>
+      <button id="btn-pass-ready" class="btn btn--primary">준비됐어요!</button>
+    </div>
+  </div>
+
+  <!-- ===== 기록 모달 ===== -->
+  <div id="records-modal" class="modal" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>게임 기록</h2>
+        <button id="records-close" class="btn btn--icon">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="records-list" class="records-list"></div>
+        <div id="record-detail" class="record-detail"></div>
+        <div id="state-snapshot" style="display:none"></div>
+        <div class="import-row">
+          <label class="btn btn--text" for="btn-import-record">📂 파일 불러오기</label>
+          <input id="btn-import-record" type="file" accept=".json" style="display:none">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

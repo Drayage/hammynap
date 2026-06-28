@@ -1,0 +1,124 @@
+/* ---- 카드 ---- */
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  min-width: 80px;
+  height: 110px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.card:hover {
+  transform: translateY(-8px) scale(1.04);
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 20px rgba(244,162,97,0.25);
+}
+
+.card--selected {
+  transform: translateY(-12px) scale(1.06);
+  border-color: var(--color-primary);
+  background: #FFF4EC;
+  box-shadow: 0 10px 24px rgba(244,162,97,0.35);
+}
+
+.card--playing {
+  pointer-events: none;
+}
+
+.card__icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.card__name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+/* ---- 햄스터 ---- */
+.hamster {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  cursor: pointer;
+  transition: transform 0.15s;
+  border-radius: 50%;
+}
+
+.hamster:hover {
+  transform: scale(1.06);
+}
+
+.hamster--targetable {
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(129,199,132,0.8));
+  animation: targetPulse 1.2s ease-in-out infinite;
+}
+
+.hamster--untargetable {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+}
+
+.hamster__body,
+.hamster__layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hamster__badge {
+  position: absolute;
+  font-size: 1.1rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.hamster__ribbon  { top: -6px; right: -4px; }
+.hamster__bottle  { bottom: 0; right: -4px; font-size: 0.9rem; }
+.hamster__backpack{ bottom: 0; left: -4px; font-size: 0.9rem; }
+
+.hamster-svg, .case-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 자는 햄스터: 살짝 흔들리는 애니메이션 */
+.hamster--sleeping .hamster__body {
+  animation: gentleBreath 3s ease-in-out infinite;
+}
+
+/* ---- 턴 종료 버튼 ---- */
+.btn--end-turn {
+  min-width: 72px;
+  height: 110px;
+  background: var(--color-bg);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  color: var(--color-text-soft);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.btn--end-turn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #FFF4EC;
+}
