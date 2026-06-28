@@ -5,6 +5,7 @@ class Renderer {
     this._selectedCard = null;
     this._myPlayerId = null;
     this._lastActions = {};
+    this._suppressNextGameOver = false;
 
     this._root        = document.getElementById('game-board');
     this._handEl      = document.getElementById('my-hand');
@@ -19,6 +20,10 @@ class Renderer {
 
   setMyPlayer(playerId) {
     this._myPlayerId = playerId;
+  }
+
+  suppressGameOver() {
+    this._suppressNextGameOver = true;
   }
 
   _onStateChanged(prev, next, action) {
@@ -316,6 +321,10 @@ class Renderer {
   }
 
   _onGameOver(winner) {
+    if (this._suppressNextGameOver) {
+      this._suppressNextGameOver = false;
+      return;
+    }
     const state = this._engine.getState();
     const winnerName = state?.players[winner]?.name ?? winner;
     const overlay = document.getElementById('game-over-overlay');

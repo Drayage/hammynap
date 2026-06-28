@@ -157,6 +157,17 @@ class GameEngine {
     this.emit('turnStart', { playerId: this._state.currentPlayer });
   }
 
+  surrender(playerId) {
+    if (!this._state || this._state.phase !== 'playing') return { ok: false };
+    const opponentId = Object.keys(this._state.players).find(id => id !== playerId);
+    if (!opponentId) return { ok: false };
+    const prev = this._state;
+    this._state = { ...this._state, phase: 'ended', winner: opponentId };
+    this.emit('stateChanged', { prev, next: this._state, action: { type: 'SURRENDER', playerId } });
+    this.emit('gameOver', { winner: opponentId });
+    return { ok: true };
+  }
+
   // 원격 액션 적용 (Firebase 동기화용)
   applyRemoteAction(action) {
     if (!this._state) return;

@@ -198,12 +198,20 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: var(--color-surface);
   border-bottom: 1.5px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 10;
+  gap: 8px;
+}
+
+.game-header__right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .turn-indicator {
@@ -223,8 +231,113 @@ html, body {
 }
 
 .deck-count {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--color-text-soft);
+  white-space: nowrap;
+}
+
+/* ---- 토너먼트 정보 ---- */
+.tournament-info {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  color: var(--color-text);
+  overflow: hidden;
+}
+
+.tournament-basic {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tournament-exp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.t-pools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.t-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.t-item--medal  { background: #FFF9C4; color: #F57F17; border: 1px solid #FFD54F; }
+.t-item--pillow { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+
+.t-scores {
+  font-size: 0.72rem;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- 라운드 종료 오버레이 ---- */
+.round-over-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(74,55,40,0.65);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.round-over-box {
+  background: var(--color-surface);
+  border-radius: 24px;
+  padding: 32px 28px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(74,55,40,0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 340px;
+  width: 90%;
+}
+
+.round-over__title {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.round-over__award {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-primary-d);
+  min-height: 1.4em;
+}
+
+.round-over__scores {
+  font-size: 0.9rem;
+  color: var(--color-text-soft);
+  line-height: 1.8;
+  background: var(--color-bg);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.round-over__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* ---- 게임 메시지 ---- */
@@ -471,6 +584,53 @@ html, body {
 .snapshot__player { font-size: 0.85rem; }
 .snapshot__hamsters { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .snapshot__hamster { font-size: 1.1rem; }
+
+/* ---- 규칙 모달 내용 ---- */
+.rules-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.rules-section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-primary-d);
+  margin-top: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid var(--color-border);
+}
+
+.rules-note {
+  font-size: 0.82rem;
+  color: var(--color-text-soft);
+  background: var(--color-bg);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.rules-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rules-card-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--color-bg);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+
+.rc-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
 
 /* ---- 반응형 ---- */
 @media (min-width: 600px) {

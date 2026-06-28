@@ -63,6 +63,10 @@
           <label for="setting-realtime">실시간 모드</label>
           <input id="setting-realtime" type="checkbox" class="setting-check">
         </div>
+        <div class="setting-row">
+          <label for="setting-single">단판 게임 (토너먼트 없음)</label>
+          <input id="setting-single" type="checkbox" class="setting-check">
+        </div>
       </section>
 
       <div class="lobby-actions">
@@ -75,7 +79,13 @@
   <div id="view-game" class="view" style="display:none">
     <header class="game-header">
       <div id="turn-indicator" class="turn-indicator">내 턴</div>
-      <div id="deck-count" class="deck-count">덱: 0장</div>
+      <div id="tournament-info" class="tournament-info"></div>
+      <div class="game-header__right">
+        <div id="deck-count" class="deck-count">덱: 0장</div>
+        <button id="btn-mute" class="btn btn--icon" title="음소거">🔊</button>
+        <button id="btn-rules" class="btn btn--icon" title="규칙 설명">📖</button>
+        <button id="btn-surrender" class="btn btn--icon" title="항복">🏳️</button>
+      </div>
     </header>
 
     <div id="game-message" class="game-message" style="display:none"></div>
@@ -88,11 +98,25 @@
       <div id="my-hand" class="hand"></div>
     </footer>
 
-    <!-- 게임 종료 오버레이 -->
+    <!-- 게임 종료 오버레이 (단판 게임) -->
     <div id="game-over-overlay" class="game-over-overlay" style="display:none">
       <div class="game-over-box">
         <div class="game-over__message"></div>
         <button id="btn-back-to-lobby" class="btn btn--primary">로비로 돌아가기</button>
+      </div>
+    </div>
+
+    <!-- 라운드 종료 오버레이 (토너먼트) -->
+    <div id="round-over-overlay" class="round-over-overlay" style="display:none">
+      <div class="round-over-box">
+        <div class="round-over__title"></div>
+        <div class="round-over__award"></div>
+        <div class="round-over__scores"></div>
+        <div class="round-over__actions">
+          <button id="btn-next-round" class="btn btn--primary">다음 라운드 ▶</button>
+          <button id="btn-end-tournament" class="btn btn--primary" style="display:none">🏆 결과 확인</button>
+          <button id="btn-round-to-lobby" class="btn btn--text">로비로</button>
+        </div>
       </div>
     </div>
 
@@ -107,6 +131,47 @@
         기기를 넘겨주세요
       </div>
       <button id="btn-pass-ready" class="btn btn--primary">준비됐어요!</button>
+    </div>
+  </div>
+
+  <!-- ===== 규칙 모달 ===== -->
+  <div id="rules-modal" class="modal" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>📖 게임 규칙</h2>
+        <button id="rules-close" class="btn btn--icon">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="rules-content">
+          <h3 class="rules-section-title">승리 조건</h3>
+          <p><strong>기본:</strong> 내 햄스터를 <em>모두</em> 재우면 승리!</p>
+          <p><strong>확장:</strong> 내 햄스터에 리본을 <em>모두</em> 달면 승리!</p>
+          <p class="rules-note">리본이 달린 햄스터는 잠드는 효과를 받지 않습니다 (중립 상태)</p>
+
+          <h3 class="rules-section-title">카드 설명</h3>
+          <div class="rules-cards">
+            <div class="rules-card-row"><span class="rc-icon">🛏️</span><div><strong>이불 덮기</strong><br>내 햄스터 1마리를 재웁니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">📢</span><div><strong>큰 소음</strong><br>방음 케이스가 없는 모든 잠든 햄스터를 깨웁니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">📦</span><div><strong>방음 케이스</strong><br>내 햄스터를 케이스에 넣어 큰 소음을 막습니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">💤</span><div><strong>이불 치우기</strong><br>잠든 햄스터(케이스·잠금 없는)의 이불을 치웁니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">🔒</span><div><strong>케이스 잠금</strong><br>방음 케이스에 자물쇠를 달아 이불 치우기를 막습니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">🔨</span><div><strong>망치</strong><br>방음 케이스(잠금 포함)를 파괴합니다. 물병이 있으면 막힙니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">💧</span><div><strong>케이스 강화</strong><br>케이스에 물병을 달아 망치 공격 1회를 막습니다</div></div>
+            <div class="rules-card-row"><span class="rc-icon">🎒</span><div><strong>배낭</strong><br>내 햄스터에 배낭을 달아 손패 최대 크기를 +1 합니다 <em>(확장)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">🎀</span><div><strong>리본</strong><br>어느 햄스터에나 리본을 달 수 있습니다. 리본 달린 햄스터는 잠들지 않습니다 <em>(확장)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">✂️</span><div><strong>리본 제거</strong><br>햄스터의 리본을 제거합니다 <em>(확장)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">🐦</span><div><strong>행운의 새</strong><br>이번 턴에 손패의 모든 카드를 사용할 수 있습니다 <em>(확장)</em></div></div>
+          </div>
+
+          <h3 class="rules-section-title">토너먼트 규칙</h3>
+          <p><strong>기본 토너먼트:</strong> 먼저 2라운드를 이기면 우승!</p>
+          <p><strong>확장 토너먼트:</strong> 메달 3개(1·2·3점)와 베개 3개(1·2·3점)가 풀에 준비됩니다.</p>
+          <p>• 리본으로 승리 → 🏅 메달 획득 (낮은 점수부터)</p>
+          <p>• 수면으로 승리 → 🛌 베개 획득 (낮은 점수부터)</p>
+          <p>한 종류의 상품이 모두 없어지면 토너먼트 종료 (최소 3판, 최대 5판)</p>
+          <p>점수 합계가 높은 사람 우승 · 동점이면 획득 갯수 비교 · 갯수도 같으면 공동우승</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -134,10 +199,12 @@
   <script src="js/engine/StateManager.js"></script>
   <script src="js/engine/RuleEngine.js"></script>
   <script src="js/engine/GameEngine.js"></script>
+  <script src="js/engine/TournamentManager.js"></script>
   <script src="js/engine/AiPlayer.js"></script>
   <script src="js/ui/HamsterView.js"></script>
   <script src="js/ui/CardAnimator.js"></script>
   <script src="js/ui/Renderer.js"></script>
+  <script src="js/ui/SoundManager.js"></script>
   <script src="js/records/RecordManager.js"></script>
   <script src="js/records/RecordViewer.js"></script>
   <script src="js/main.js"></script>

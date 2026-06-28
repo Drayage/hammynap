@@ -52,6 +52,7 @@ function buildHamsterHTML(h) {
   }
 
   if (h.attachments.soundproofCase) {
+    layers.push(`<div class="hamster__layer hamster__earmuffs">${earmuffsSvg()}</div>`);
     layers.push(`<div class="hamster__layer hamster__case">${caseSvg(h.attachments.caseLock, h.attachments.waterBottle)}</div>`);
     if (h.attachments.waterBottle) {
       layers.push(`<div class="hamster__badge hamster__bottle">🧱</div>`);
@@ -122,6 +123,17 @@ function hamsterBackSvg() {
     <path d="M43 43 Q50 55 55 64" stroke="#FF6B9D" stroke-width="6" stroke-linecap="round" fill="none"/>
     <path d="M37.5 43 Q31 54 26 63" stroke="#FF96BC" stroke-width="2" stroke-linecap="round" fill="none"/>
     <path d="M42.5 43 Q49 54 54 63" stroke="#FF96BC" stroke-width="2" stroke-linecap="round" fill="none"/>
+  </svg>`;
+}
+
+// Earmuffs SVG — shown when hamster is in soundproof case
+function earmuffsSvg() {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" class="hamster-svg">
+    <path d="M22 22 Q40 5 58 22" stroke="#7B1FA2" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <circle cx="22" cy="22" r="12" fill="#AB47BC" opacity="0.88"/>
+    <circle cx="22" cy="22" r="7.5" fill="#E1BEE7"/>
+    <circle cx="58" cy="22" r="12" fill="#AB47BC" opacity="0.88"/>
+    <circle cx="58" cy="22" r="7.5" fill="#E1BEE7"/>
   </svg>`;
 }
 

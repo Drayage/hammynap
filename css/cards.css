@@ -88,7 +88,7 @@
 
 .hamster__body          { z-index: 1; }
 .hamster__blanket       { z-index: 2; }
-.hamster__ribbon-overlay{ z-index: 3; }
+.hamster__earmuffs      { z-index: 3; }
 .hamster__case          { z-index: 4; pointer-events: none; }
 .hamster__badge         { z-index: 5; }
 
