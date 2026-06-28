@@ -124,9 +124,10 @@ class Renderer {
     const player = state.players[this._myPlayerId];
     if (!player) return;
 
+    const isRealtime = state.mode?.includes('realtime');
     const isMyTurn = state.currentPlayer === this._myPlayerId;
     const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
-    const canAct = isMyTurn || isLuckyBirdPhase;
+    const canAct = isRealtime || isMyTurn || isLuckyBirdPhase;
 
     this._handEl.innerHTML = '';
 
@@ -142,12 +143,8 @@ class Renderer {
       el.className = 'card';
       el.dataset.cardId = cardId;
 
-      if (canAct) {
-        if (this._isCardPlayable(state, this._myPlayerId, cardId)) {
-          el.classList.add('card--playable');
-        } else {
-          el.classList.add('card--unplayable');
-        }
+      if (canAct && this._isCardPlayable(state, this._myPlayerId, cardId)) {
+        el.classList.add('card--playable');
       }
 
       el.innerHTML = `
@@ -197,9 +194,10 @@ class Renderer {
     const state = this._engine.getState();
     if (!state || state.phase !== 'playing') return;
 
+    const isRealtime = state.mode?.includes('realtime');
     const isMyTurn = state.currentPlayer === this._myPlayerId;
     const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
-    if (!isMyTurn && !isLuckyBirdPhase) return;
+    if (!isRealtime && !isMyTurn && !isLuckyBirdPhase) return;
 
     const card = CARDS[cardId];
     if (!card) return;
@@ -287,6 +285,11 @@ class Renderer {
 
   _updateTurnIndicator(state) {
     if (!this._turnEl) return;
+    if (state.mode?.includes('realtime')) {
+      this._turnEl.textContent = '⚡ 실시간';
+      this._turnEl.className = 'turn-indicator turn-indicator--mine';
+      return;
+    }
     const current = state.players[state.currentPlayer];
     const isMyTurn = state.currentPlayer === this._myPlayerId;
     let text = isMyTurn ? '내 턴' : `${current?.name ?? ''}의 턴`;

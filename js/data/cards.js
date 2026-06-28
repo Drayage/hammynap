@@ -131,7 +131,7 @@ const CARDS = {
     expansionOnly: true,
     deckCount: 16,
     targetType: 'hamster',
-    targetOwner: 'self',
+    targetOwner: 'any',
     targetConditions: [
       { field: 'attachments.ribbon', value: false }
     ],

@@ -1,7 +1,7 @@
 function validatePlay(state, action) {
   const { playerId, cardId, targetPlayerId, targetHamsterId } = action;
 
-  if (state.currentPlayer !== playerId) {
+  if (state.currentPlayer !== playerId && !state.mode?.includes('realtime')) {
     return fail('지금 당신의 턴이 아닙니다.');
   }
 
@@ -100,7 +100,7 @@ function checkTargetOwner(targetOwner, playerId, targetPlayerId) {
 }
 
 function canDiscardAllDraw(state, playerId) {
-  if (state.currentPlayer !== playerId) return false;
+  if (state.currentPlayer !== playerId && !state.mode?.includes('realtime')) return false;
   const player = state.players[playerId];
   if (!player || player.hand.length === 0) return false;
 

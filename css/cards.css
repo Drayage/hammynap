@@ -171,12 +171,6 @@
   animation: fadeIn 0.2s ease-out, cardShimmer 1.8s ease-in-out 0.2s infinite;
 }
 
-.card--unplayable {
-  opacity: 0.5;
-  filter: grayscale(0.3);
-  cursor: default;
-}
-
 /* ---- 최근 변화된 햄스터 하이라이트 ---- */
 .hamster--just-changed {
   animation: hamsterHighlight 1.6s ease-out forwards;

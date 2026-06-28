@@ -52,6 +52,7 @@ class GameEngine {
       return { ok: true };
     }
 
+    const isRealtime = this._state.mode?.includes('realtime');
     if (this._state.luckyBirdActive) {
       // 행운의 새 모드: 손패가 비었으면 종료, 아니면 계속 플레이
       if (this._state.players[playerId].hand.length === 0) {
@@ -60,6 +61,12 @@ class GameEngine {
         this.emit('stateChanged', { prev, next: this._state, action });
         this.emit('cardPlayed', { playerId, cardId, targetPlayerId, targetHamsterId });
       }
+    } else if (isRealtime) {
+      // 실시간 모드: 턴 전환 없이 즉시 카드 보충
+      const needed = this._state.players[playerId].maxHandSize - this._state.players[playerId].hand.length;
+      if (needed > 0) this._state = drawCardsForPlayer(this._state, playerId, needed);
+      this.emit('stateChanged', { prev, next: this._state, action });
+      this.emit('cardPlayed', { playerId, cardId, targetPlayerId, targetHamsterId });
     } else {
       // 일반 플레이: 1장 사용 → 1장 보충 → 턴 종료 (자동)
       this._state = applyAction(this._state, { type: 'END_TURN', playerId });
@@ -77,7 +84,8 @@ class GameEngine {
 
     const isMyTurn = this._state.currentPlayer === playerId;
     const isLuckyBirdTurn = this._state.luckyBirdActive && this._state.luckyBirdPlayer === playerId;
-    if (!isMyTurn && !isLuckyBirdTurn) {
+    const isRealtime = this._state.mode?.includes('realtime');
+    if (!isMyTurn && !isLuckyBirdTurn && !isRealtime) {
       return { ok: false, reason: '지금 당신의 턴이 아닙니다.' };
     }
 
@@ -96,6 +104,10 @@ class GameEngine {
       } else {
         this.emit('stateChanged', { prev, next: this._state, action });
       }
+    } else if (isRealtime) {
+      const needed = this._state.players[playerId].maxHandSize - this._state.players[playerId].hand.length;
+      if (needed > 0) this._state = drawCardsForPlayer(this._state, playerId, needed);
+      this.emit('stateChanged', { prev, next: this._state, action });
     } else {
       // 일반 버리기: 1장 버리기 → 1장 보충 → 턴 종료 (자동)
       this._state = applyAction(this._state, { type: 'END_TURN', playerId });
@@ -109,7 +121,10 @@ class GameEngine {
   discardAllAndDraw(playerId) {
     if (!this._state) return { ok: false, reason: '게임이 시작되지 않았습니다.' };
     if (this._state.phase !== 'playing') return { ok: false, reason: '게임이 진행 중이 아닙니다.' };
-    if (this._state.currentPlayer !== playerId) return { ok: false, reason: '지금 당신의 턴이 아닙니다.' };
+    const isRealtimeDiscard = this._state.mode?.includes('realtime');
+    if (!isRealtimeDiscard && this._state.currentPlayer !== playerId) {
+      return { ok: false, reason: '지금 당신의 턴이 아닙니다.' };
+    }
     if (!canDiscardAllDraw(this._state, playerId)) {
       this.emit('invalidAction', { reason: '사용 가능한 카드가 있을 때는 전부 버리기를 할 수 없습니다.' });
       return { ok: false, reason: '사용 가능한 카드가 있습니다.' };
@@ -117,9 +132,22 @@ class GameEngine {
 
     const action = { type: 'DISCARD_ALL_DRAW', playerId };
     const prev = this._state;
-    this._state = applyAction(this._state, action);
-    this.emit('stateChanged', { prev, next: this._state, action });
-    this.emit('turnStart', { playerId: this._state.currentPlayer });
+
+    if (isRealtimeDiscard) {
+      const player = this._state.players[playerId];
+      let s = {
+        ...this._state,
+        discardPile: [...this._state.discardPile, ...player.hand],
+        players: { ...this._state.players, [playerId]: { ...player, hand: [] } }
+      };
+      s = drawCardsForPlayer(s, playerId, DEFAULT_HAND_SIZE);
+      this._state = s;
+      this.emit('stateChanged', { prev, next: this._state, action });
+    } else {
+      this._state = applyAction(this._state, action);
+      this.emit('stateChanged', { prev, next: this._state, action });
+      this.emit('turnStart', { playerId: this._state.currentPlayer });
+    }
     return { ok: true };
   }
 
