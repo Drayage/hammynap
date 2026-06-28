@@ -41,10 +41,28 @@ class Renderer {
         if (!el) continue;
         const oldH = prev.players[pid]?.hamsters.find(h => h.id === hamster.id);
         if (oldH && JSON.stringify(oldH) !== JSON.stringify(hamster)) {
-          updateHamsterElement(el, oldH, hamster);
-          if (!hamster.sleeping && oldH.sleeping) this._animator.wakeHamster(el);
-          else if (hamster.sleeping && !oldH.sleeping) this._animator.sleepHamster(el);
-          else this._animator.attachItem(el);
+          const ribbonChanged = hamster.attachments.ribbon !== oldH.attachments.ribbon;
+          if (ribbonChanged) {
+            el.animate(
+              [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
+              { duration: 220, easing: 'ease-in' }
+            ).onfinish = () => {
+              updateHamsterElement(el, oldH, hamster);
+              el.animate(
+                [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+                { duration: 220, easing: 'ease-out' }
+              );
+              el.classList.add('hamster--just-changed');
+              setTimeout(() => el.classList.remove('hamster--just-changed'), 1600);
+            };
+          } else {
+            updateHamsterElement(el, oldH, hamster);
+            if (!hamster.sleeping && oldH.sleeping) this._animator.wakeHamster(el);
+            else if (hamster.sleeping && !oldH.sleeping) this._animator.sleepHamster(el);
+            else this._animator.attachItem(el);
+            el.classList.add('hamster--just-changed');
+            setTimeout(() => el.classList.remove('hamster--just-changed'), 1600);
+          }
         }
       }
     }
@@ -123,6 +141,15 @@ class Renderer {
       const el = document.createElement('div');
       el.className = 'card';
       el.dataset.cardId = cardId;
+
+      if (canAct) {
+        if (this._isCardPlayable(state, this._myPlayerId, cardId)) {
+          el.classList.add('card--playable');
+        } else {
+          el.classList.add('card--unplayable');
+        }
+      }
+
       el.innerHTML = `
         <div class="card__icon">${card.emoji}</div>
         <div class="card__name">${card.nameKo}</div>
@@ -156,6 +183,14 @@ class Renderer {
       });
       this._handEl.appendChild(discardAllBtn);
     }
+  }
+
+  _isCardPlayable(state, playerId, cardId) {
+    const card = CARDS[cardId];
+    if (!card) return false;
+    if (card.targetType === 'none') return true;
+    if (card.targetType === 'all') return countAffected(state, card, playerId) > 0;
+    return getValidTargets(state, playerId, cardId).length > 0;
   }
 
   _onCardClick(cardId, el) {

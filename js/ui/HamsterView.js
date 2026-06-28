@@ -41,14 +41,14 @@ function updateHamsterElement(el, oldH, newH) {
 function buildHamsterHTML(h) {
   const layers = [];
 
-  layers.push(`<div class="hamster__body">${hamsterSvg(h.sleeping)}</div>`);
-
-  if (h.sleeping) {
-    layers.push(`<div class="hamster__layer hamster__blanket">${blanketSvg()}</div>`);
-  }
-
   if (h.attachments.ribbon) {
-    layers.push(`<div class="hamster__layer hamster__ribbon-overlay">${ribbonSvg()}</div>`);
+    // Back view — sleeping/awake state naturally hidden
+    layers.push(`<div class="hamster__body">${hamsterBackSvg()}</div>`);
+  } else {
+    layers.push(`<div class="hamster__body">${hamsterSvg(h.sleeping)}</div>`);
+    if (h.sleeping) {
+      layers.push(`<div class="hamster__layer hamster__blanket">${blanketSvg()}</div>`);
+    }
   }
 
   if (h.attachments.soundproofCase) {
@@ -102,20 +102,26 @@ function blanketSvg() {
   </svg>`;
 }
 
-// Ribbon SVG — large bow covering entire hamster, hides sleeping/awake state
-function ribbonSvg() {
-  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" class="ribbon-svg">
-    <circle cx="40" cy="40" r="37" fill="#FFD6E4" opacity="0.90"/>
-    <ellipse cx="25" cy="29" rx="17" ry="12" fill="#FF6B9D" transform="rotate(-18 25 29)"/>
-    <ellipse cx="25" cy="29" rx="10" ry="7" fill="#FF96BC" transform="rotate(-18 25 29)"/>
-    <ellipse cx="55" cy="29" rx="17" ry="12" fill="#FF6B9D" transform="rotate(18 55 29)"/>
-    <ellipse cx="55" cy="29" rx="10" ry="7" fill="#FF96BC" transform="rotate(18 55 29)"/>
-    <circle cx="40" cy="34" r="7.5" fill="#D81B70"/>
-    <circle cx="40" cy="34" r="4.5" fill="#FF6BAD"/>
-    <path d="M36 40 Q27 54 21 65" stroke="#FF6B9D" stroke-width="7" stroke-linecap="round" fill="none"/>
-    <path d="M44 40 Q53 54 59 65" stroke="#FF6B9D" stroke-width="7" stroke-linecap="round" fill="none"/>
-    <path d="M37 41 Q29 54 23 64" stroke="#FF96BC" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-    <path d="M43 41 Q51 54 57 64" stroke="#FF96BC" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+// Hamster back view SVG — shown when ribbon is attached; hides sleeping state naturally
+function hamsterBackSvg() {
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" class="hamster-svg">
+    <ellipse cx="22" cy="22" rx="12" ry="12" fill="#F4A261"/>
+    <ellipse cx="58" cy="22" rx="12" ry="12" fill="#F4A261"/>
+    <ellipse cx="22" cy="22" rx="7" ry="7" fill="#E8955A"/>
+    <ellipse cx="58" cy="22" rx="7" ry="7" fill="#E8955A"/>
+    <ellipse cx="40" cy="46" rx="30" ry="28" fill="#F4A261"/>
+    <ellipse cx="40" cy="50" rx="13" ry="20" fill="#FDDCB5" opacity="0.55"/>
+    <ellipse cx="40" cy="72" rx="5" ry="4" fill="#FDDCB5"/>
+    <ellipse cx="25" cy="37" rx="13" ry="8.5" fill="#FF6B9D" transform="rotate(-15 25 37)"/>
+    <ellipse cx="25" cy="37" rx="8" ry="5.5" fill="#FF96BC" transform="rotate(-15 25 37)"/>
+    <ellipse cx="55" cy="37" rx="13" ry="8.5" fill="#FF6B9D" transform="rotate(15 55 37)"/>
+    <ellipse cx="55" cy="37" rx="8" ry="5.5" fill="#FF96BC" transform="rotate(15 55 37)"/>
+    <circle cx="40" cy="37" r="6.5" fill="#D81B70"/>
+    <circle cx="40" cy="37" r="3.8" fill="#FF6BAD"/>
+    <path d="M37 43 Q30 55 25 64" stroke="#FF6B9D" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M43 43 Q50 55 55 64" stroke="#FF6B9D" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <path d="M37.5 43 Q31 54 26 63" stroke="#FF96BC" stroke-width="2" stroke-linecap="round" fill="none"/>
+    <path d="M42.5 43 Q49 54 54 63" stroke="#FF96BC" stroke-width="2" stroke-linecap="round" fill="none"/>
   </svg>`;
 }
 

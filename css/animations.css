@@ -68,6 +68,19 @@
   animation: fadeInDown 0.5s ease-out;
 }
 
+/* ---- 카드 shimmer (사용 가능한 카드) ---- */
+@keyframes cardShimmer {
+  0%, 100% { box-shadow: 0 2px 8px rgba(74,55,40,0.12); }
+  50%       { box-shadow: 0 0 18px rgba(244,162,97,0.7), 0 4px 12px rgba(244,162,97,0.4); }
+}
+
+/* ---- 햄스터 변화 하이라이트 ---- */
+@keyframes hamsterHighlight {
+  0%   { filter: drop-shadow(0 0 8px rgba(244,162,97,0.9)); }
+  60%  { filter: drop-shadow(0 0 5px rgba(244,162,97,0.5)); }
+  100% { filter: drop-shadow(0 0 0px rgba(244,162,97,0)); }
+}
+
 /* ---- 부드러운 등장 ---- */
 @keyframes fadeIn {
   from { opacity: 0; }
