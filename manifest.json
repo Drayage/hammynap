@@ -1,7 +1,7 @@
 {
-  "name": "햄스터 낮잠",
-  "short_name": "햄스터 낮잠",
-  "description": "귀여운 햄스터들을 재우는 카드게임",
+  "name": "햄찌 낮잠시간",
+  "short_name": "햄찌 낮잠시간",
+  "description": "햄찌 주인끼리 자기 햄스터 먼저 재우기 경쟁!",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

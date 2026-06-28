@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>햄스터 낮잠 🐹</title>
+  <title>햄찌 낮잠시간 🐹</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/cards.css">
@@ -14,8 +14,8 @@
   <!-- ===== 로비 뷰 ===== -->
   <div id="view-lobby" class="view">
     <header class="lobby-header">
-      <h1 class="logo">🐹 햄스터 낮잠</h1>
-      <p class="logo-sub">햄스터를 모두 재우면 승리!</p>
+      <h1 class="logo">🐹 햄찌 낮잠시간</h1>
+      <p class="logo-sub">우리 햄찌 먼저 재우면 이기는 카드게임!</p>
     </header>
 
     <main class="lobby-main">
@@ -72,7 +72,7 @@
             <input id="online-hamsters" type="number" min="0" max="6" value="0" class="setting-input">
           </div>
           <div class="setting-row">
-            <label for="online-expansion">확장팩 포함</label>
+            <label for="online-expansion">귀요미 사진대회 포함</label>
             <input id="online-expansion" type="checkbox" class="setting-check">
           </div>
           <div class="setting-row">
@@ -127,7 +127,7 @@
           <input id="setting-hamsters" type="number" min="0" max="6" value="0" class="setting-input">
         </div>
         <div class="setting-row">
-          <label for="setting-expansion">확장팩 포함</label>
+          <label for="setting-expansion">귀요미 사진대회 포함</label>
           <input id="setting-expansion" type="checkbox" class="setting-check">
         </div>
         <div class="setting-row">
@@ -217,7 +217,7 @@
         <div class="rules-content">
           <h3 class="rules-section-title">승리 조건</h3>
           <p><strong>기본:</strong> 내 햄스터를 <em>모두</em> 재우면 승리!</p>
-          <p><strong>확장:</strong> 기본 승리조건에 추가로, 내 햄스터에 리본을 <em>모두</em> 달면 승리!</p>
+          <p><strong>귀요미 사진대회:</strong> 기본 승리조건에 추가로, 내 햄스터에 리본을 <em>모두</em> 달면 승리!</p>
           <p class="rules-note">리본이 달린 햄스터는 잠드는 효과를 받지 않습니다 (중립 상태)</p>
 
           <h3 class="rules-section-title">카드 설명</h3>
@@ -229,15 +229,15 @@
             <div class="rules-card-row"><span class="rc-icon">🔒</span><div><strong>수면캡슐 잠금</strong><br>수면캡슐에 자물쇠를 달아 이불 치우기를 막습니다</div></div>
             <div class="rules-card-row"><span class="rc-icon">🔨</span><div><strong>망치</strong><br>상대 수면캡슐(잠금 포함)을 파괴합니다. 수면캡슐이 강화되어 있으면 막힙니다</div></div>
             <div class="rules-card-row"><span class="rc-icon">🧱</span><div><strong>수면캡슐 강화</strong><br>수면캡슐을 벽돌로 바꿔 망치로 파괴되지 않습니다</div></div>
-            <div class="rules-card-row"><span class="rc-icon">🎒</span><div><strong>배낭</strong><br>리본이 달린 내 햄스터에 배낭을 달아 손패 최대 크기를 +1 합니다. 리본 제거 시 배낭도 함께 사라집니다 <em>(확장)</em></div></div>
-            <div class="rules-card-row"><span class="rc-icon">🎀</span><div><strong>리본</strong><br>어느 햄스터에나 리본을 달 수 있습니다. 리본 달린 햄스터는 잠들지 않습니다 <em>(확장)</em></div></div>
-            <div class="rules-card-row"><span class="rc-icon">✂️</span><div><strong>리본 제거</strong><br>햄스터의 리본을 제거합니다 <em>(확장)</em></div></div>
-            <div class="rules-card-row"><span class="rc-icon">🐦</span><div><strong>행운의 새</strong><br>이번 턴에 손패의 모든 카드를 사용할 수 있습니다 <em>(확장)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">🎒</span><div><strong>배낭</strong><br>리본이 달린 내 햄스터에 배낭을 달아 손패 최대 크기를 +1 합니다. 리본 제거 시 배낭도 함께 사라집니다 <em>(귀요미 사진대회)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">🎀</span><div><strong>리본</strong><br>어느 햄스터에나 리본을 달 수 있습니다. 리본 달린 햄스터는 잠들지 않습니다 <em>(귀요미 사진대회)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">✂️</span><div><strong>리본 제거</strong><br>햄스터의 리본을 제거합니다 <em>(귀요미 사진대회)</em></div></div>
+            <div class="rules-card-row"><span class="rc-icon">🐦</span><div><strong>행운의 새</strong><br>이번 턴에 손패의 모든 카드를 사용할 수 있습니다 <em>(귀요미 사진대회)</em></div></div>
           </div>
 
           <h3 class="rules-section-title">토너먼트 규칙</h3>
           <p><strong>기본 토너먼트:</strong> 먼저 2라운드를 이기면 우승!</p>
-          <p><strong>확장 토너먼트:</strong> 메달 3개(1·2·3점)와 베개 3개(1·2·3점)가 풀에 준비됩니다.</p>
+          <p><strong>귀요미 사진대회 토너먼트:</strong> 메달 3개(1·2·3점)와 베개 3개(1·2·3점)가 풀에 준비됩니다.</p>
           <p>• 리본으로 승리 → 🏅 메달 획득 (낮은 점수부터)</p>
           <p>• 수면으로 승리 → 🛌 베개 획득 (낮은 점수부터)</p>
           <p>한 종류의 상품이 모두 없어지면 토너먼트 종료 (최소 3판, 최대 5판)</p>
