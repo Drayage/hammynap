@@ -49,7 +49,7 @@ function setupLobby() {
 function buildConfig(mode) {
   const playerCount  = parseInt(document.getElementById('setting-players')?.value ?? '2');
   const hamsterCount = parseInt(document.getElementById('setting-hamsters')?.value ?? '0') ||
-                       HAMSTER_COUNT_BY_PLAYERS[playerCount] ?? 3;
+                       (HAMSTER_COUNT_BY_PLAYERS[playerCount] ?? 3);
   const expansion    = document.getElementById('setting-expansion')?.checked ?? false;
   const realtime     = document.getElementById('setting-realtime')?.checked ?? false;
 
