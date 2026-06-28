@@ -52,6 +52,7 @@ class Renderer {
               [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
               { duration: 220, easing: 'ease-in' }
             ).onfinish = () => {
+              el.innerHTML = hamsterHtml(hamster);
               updateHamsterElement(el, oldH, hamster);
               el.animate(
                 [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
@@ -61,6 +62,7 @@ class Renderer {
               setTimeout(() => el.classList.remove('hamster--just-changed'), 1600);
             };
           } else {
+            el.innerHTML = hamsterHtml(hamster);
             updateHamsterElement(el, oldH, hamster);
             if (!hamster.sleeping && oldH.sleeping) this._animator.wakeHamster(el);
             else if (hamster.sleeping && !oldH.sleeping) this._animator.sleepHamster(el);

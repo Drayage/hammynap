@@ -53,12 +53,32 @@ function setupLobby() {
   });
 }
 
+function _updateHumanGuestsOptions() {
+  const playerCount   = parseInt(document.getElementById('online-player-count')?.value ?? '2');
+  const guestsSel     = document.getElementById('online-human-guests');
+  if (!guestsSel) return;
+  const prevVal       = parseInt(guestsSel.value ?? '1');
+  const maxGuests     = playerCount - 1;
+  guestsSel.innerHTML = '';
+  for (let i = 1; i <= maxGuests; i++) {
+    const opt   = document.createElement('option');
+    opt.value   = i;
+    opt.textContent = `${i}명`;
+    guestsSel.appendChild(opt);
+  }
+  guestsSel.value = Math.min(prevVal, maxGuests);
+}
+
 function setupOnlineButtons() {
   // 방 만들기: 설정 패널 표시
   document.getElementById('btn-create-room')?.addEventListener('click', () => {
+    _updateHumanGuestsOptions();
     document.getElementById('online-buttons').style.display     = 'none';
     document.getElementById('online-setup-panel').style.display = '';
   });
+
+  // 총 인원 변경 시 사람 게스트 수 옵션 갱신
+  document.getElementById('online-player-count')?.addEventListener('change', _updateHumanGuestsOptions);
 
   // 방 설정 패널의 "방 열기"
   document.getElementById('btn-open-room')?.addEventListener('click', () => createOnlineRoom());
@@ -103,19 +123,23 @@ function setupOnlineButtons() {
 
 function buildOnlineConfig() {
   const playerCount  = parseInt(document.getElementById('online-player-count')?.value ?? '2');
+  const humanGuests  = Math.min(
+    parseInt(document.getElementById('online-human-guests')?.value ?? '1'),
+    playerCount - 1
+  );
   const expansion    = document.getElementById('online-expansion')?.checked ?? false;
   const isSingle     = document.getElementById('online-single')?.checked ?? false;
-  const hamsterCount = parseInt(document.getElementById('setting-hamsters')?.value ?? '0') ||
-                       (expansion ? 3 : (HAMSTER_COUNT_BY_PLAYERS[playerCount] ?? 3));
+  const rawHamsters  = parseInt(document.getElementById('online-hamsters')?.value ?? '0');
+  const hamsterCount = rawHamsters || (expansion ? 3 : (HAMSTER_COUNT_BY_PLAYERS[playerCount] ?? 3));
   const gameMode     = expansion ? 'expansion' : 'basic';
 
-  // p1=호스트(인간), p2=게스트(인간), p3~=AI
-  const playerSetup = [
-    { id: 'p1', type: 'human', name: '호스트' },
-    { id: 'p2', type: 'human', name: '게스트' },
-  ];
-  for (let i = 3; i <= playerCount; i++) {
-    playerSetup.push({ id: `p${i}`, type: 'ai', name: `AI ${i - 2}` });
+  // p1=호스트(인간), p2~p(1+humanGuests)=인간 게스트, 나머지=AI
+  const playerSetup = [{ id: 'p1', type: 'human', name: '호스트' }];
+  for (let i = 2; i <= 1 + humanGuests; i++) {
+    playerSetup.push({ id: `p${i}`, type: 'human', name: `게스트 ${i - 1}` });
+  }
+  for (let i = 2 + humanGuests; i <= playerCount; i++) {
+    playerSetup.push({ id: `p${i}`, type: 'ai', name: `AI ${i - 1 - humanGuests}` });
   }
 
   return { mode: gameMode, playerSetup, hamsterCount, isSingle };
@@ -174,20 +198,27 @@ async function createOnlineRoom() {
   }
 
   // 방 설정 패널 숨기고 대기 UI 표시
+  const humanGuestCount = _config.playerSetup.filter(p => p.type === 'human' && p.id !== 'p1').length;
   document.getElementById('online-setup-panel').style.display = 'none';
   document.getElementById('room-code-value').textContent      = roomCode;
-  document.getElementById('online-status-text').textContent   = '상대방 참가 대기 중…';
+  document.getElementById('online-status-text').textContent   =
+    humanGuestCount > 1 ? `게스트 0/${humanGuestCount} 참가 대기 중…` : '상대방 참가 대기 중…';
   document.getElementById('online-status-text').className     = 'online-status-text';
   document.getElementById('online-buttons').style.display     = 'none';
   document.getElementById('online-waiting').style.display     = '';
 
   // 게스트 참가 대기 → 게임 시작
   sync.onStatusChange(status => {
+    const statusEl = document.getElementById('online-status-text');
+    if (status.startsWith('partial_join:')) {
+      const [, filled, total] = status.split(':');
+      if (statusEl) statusEl.textContent = `게스트 ${filled}/${total} 참가 대기 중…`;
+      return;
+    }
     if (status !== 'guest_joined') return;
 
-    const statusEl = document.getElementById('online-status-text');
     if (statusEl) {
-      statusEl.textContent = '게스트 참가! 게임 시작 중…';
+      statusEl.textContent = humanGuestCount > 1 ? '모든 게스트 참가! 게임 시작 중…' : '게스트 참가! 게임 시작 중…';
       statusEl.className   = 'online-status-text online-status-text--connected';
     }
 
@@ -239,27 +270,12 @@ async function joinOnlineGame() {
   renderer      = new Renderer(engine);
   recordManager = new RecordManager(engine);
   recordViewer  = new RecordViewer(recordManager);
-  myPlayerId    = 'p2';
-  renderer.setMyPlayer(myPlayerId);
-
-  // 게임 오버 처리 (토너먼트 여부는 서버로부터 수신)
-  engine.on('gameOver', ({ winner }) => {
-    sound.playWin();
-    // 토너먼트 모드면 라운드 오버 오버레이 표시 (게스트용)
-    if (_remoteTournamentState) {
-      renderer.suppressGameOver();
-      _showGuestRoundOverlay(winner);
-    }
-  });
 
   sync = new FirebaseSync();
   sync.onTournamentUpdate(ts => {
     _remoteTournamentState = ts;
     renderTournamentInfo();
   });
-
-  _wrapEngineForGuest(engine, sync);
-  _attachSoundHooks(engine);
 
   try {
     await sync.joinRoom(roomId, engine);
@@ -268,6 +284,21 @@ async function joinOnlineGame() {
     document.getElementById('btn-join-confirm').disabled = false;
     return;
   }
+
+  myPlayerId = sync._mySlot;
+  renderer.setMyPlayer(myPlayerId);
+
+  // 게임 오버 처리 (토너먼트 여부는 서버로부터 수신)
+  engine.on('gameOver', ({ winner }) => {
+    sound.playWin();
+    if (_remoteTournamentState) {
+      renderer.suppressGameOver();
+      _showGuestRoundOverlay(winner);
+    }
+  });
+
+  _wrapEngineForGuest(engine, sync);
+  _attachSoundHooks(engine);
 
   document.getElementById('btn-join-confirm').disabled      = false;
   document.getElementById('online-join-panel').style.display = 'none';

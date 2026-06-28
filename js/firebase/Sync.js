@@ -38,14 +38,20 @@ class FirebaseSync {
     this._isHost = true;
     this._roomId = this._generateCode();
 
+    // 인간 게스트 슬롯 목록 (p1 제외)
+    const humanSlots = config.playerSetup
+      .filter(p => p.type === 'human' && p.id !== 'p1')
+      .map(p => p.id);
+
     const roomRef = this._db.ref(`games/${this._roomId}`);
 
     await roomRef.set({
       meta: {
-        status:    'waiting',
-        hostId:    'p1',
-        config:    JSON.stringify(config),
-        createdAt: Date.now()
+        status:      'waiting',
+        hostId:      'p1',
+        config:      JSON.stringify(config),
+        humanSlots:  humanSlots.length ? humanSlots : null,
+        createdAt:   Date.now()
       },
       state:         null,
       lastAction:    null,
@@ -53,12 +59,19 @@ class FirebaseSync {
       tournament:    null
     });
 
-    // 게스트 참가 감지
-    const guestRef = roomRef.child('meta/guestId');
-    const guestHandler = guestRef.on('value', snap => {
-      if (snap.val() && this._statusCb) this._statusCb('guest_joined');
+    // 게스트 참가 감지: joinedSlots 카운트로 판단
+    const joinedRef    = roomRef.child('meta/joinedSlots');
+    const guestHandler = joinedRef.on('value', snap => {
+      const joined      = snap.val() || {};
+      const filledCount = humanSlots.filter(s => joined[s]).length;
+      if (!this._statusCb) return;
+      if (filledCount >= humanSlots.length) {
+        this._statusCb('guest_joined');
+      } else if (filledCount > 0) {
+        this._statusCb(`partial_join:${filledCount}:${humanSlots.length}`);
+      }
     });
-    this._offCallbacks.push(() => guestRef.off('value', guestHandler));
+    this._offCallbacks.push(() => joinedRef.off('value', guestHandler));
 
     // 게스트 액션 수신 (호스트가 검증 후 적용)
     const actionRef = roomRef.child('pendingAction');
@@ -123,10 +136,33 @@ class FirebaseSync {
     this._isHost = false;
     this._roomId = roomId.toUpperCase().trim();
 
-    await this._db.ref(`games/${this._roomId}/meta`).update({
-      guestId: 'p2',
-      status:  'playing'
+    // Firebase transaction으로 빈 슬롯 선점
+    const metaRef    = this._db.ref(`games/${this._roomId}/meta`);
+    let assignedSlot = null;
+
+    await metaRef.transaction(meta => {
+      assignedSlot = null; // 재시도 시 초기화
+      if (!meta) return meta;
+      // humanSlots가 없으면 레거시 방 → p2 고정
+      const slots = meta.humanSlots
+        ? (Array.isArray(meta.humanSlots) ? meta.humanSlots : Object.values(meta.humanSlots))
+        : ['p2'];
+      const joined = meta.joinedSlots || {};
+      for (const slot of slots) {
+        if (!joined[slot]) {
+          if (!meta.joinedSlots) meta.joinedSlots = {};
+          meta.joinedSlots[slot] = true;
+          assignedSlot = slot;
+          // 모든 슬롯이 채워지면 playing으로 전환
+          if (slots.every(s => meta.joinedSlots[s])) meta.status = 'playing';
+          return meta;
+        }
+      }
+      return undefined; // abort: 빈 슬롯 없음
     });
+
+    if (!assignedSlot) throw new Error('방이 꽉 찼거나 참가할 수 없습니다.');
+    this._mySlot = assignedSlot;
 
     // lastAction 구독 (state보다 먼저 — 레이스 최소화)
     const actionRef = this._db.ref(`games/${this._roomId}/lastAction`);

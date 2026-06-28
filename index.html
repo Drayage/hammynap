@@ -56,10 +56,20 @@
           <div class="setting-row">
             <label for="online-player-count">총 인원</label>
             <select id="online-player-count" class="setting-select">
-              <option value="2">2인 (나 + 게스트)</option>
-              <option value="3">3인 (나 + 게스트 + AI 1)</option>
-              <option value="4">4인 (나 + 게스트 + AI 2)</option>
+              <option value="2">2인</option>
+              <option value="3">3인</option>
+              <option value="4">4인</option>
             </select>
+          </div>
+          <div class="setting-row">
+            <label for="online-human-guests">사람 게스트 수</label>
+            <select id="online-human-guests" class="setting-select">
+              <option value="1">1명</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="online-hamsters">햄스터 수 (0=자동)</label>
+            <input id="online-hamsters" type="number" min="0" max="6" value="0" class="setting-input">
           </div>
           <div class="setting-row">
             <label for="online-expansion">확장팩 포함</label>
