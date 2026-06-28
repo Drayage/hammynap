@@ -502,6 +502,15 @@ html, body {
   margin-bottom: 6px;
 }
 
+/* ---- 카드 설명 한 줄 ---- */
+.card-desc {
+  font-size: 0.78rem;
+  color: var(--color-text-soft);
+  text-align: center;
+  padding: 0 8px 6px;
+  line-height: 1.3;
+}
+
 /* ---- 손패 ---- */
 .hand-area {
   background: var(--color-surface);

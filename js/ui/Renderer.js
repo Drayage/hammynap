@@ -12,6 +12,7 @@ class Renderer {
     this._turnEl      = document.getElementById('turn-indicator');
     this._deckCountEl = document.getElementById('deck-count');
     this._msgEl       = document.getElementById('game-message');
+    this._cardDescEl  = document.getElementById('card-desc');
 
     engine.on('stateChanged', ({ prev, next, action }) => this._onStateChanged(prev, next, action));
     engine.on('gameOver',     ({ winner })               => this._onGameOver(winner));
@@ -239,7 +240,10 @@ class Renderer {
     document.querySelectorAll('.card').forEach(c => c.classList.remove('card--selected'));
     el.classList.add('card--selected');
 
-    if (card.descKo) this._showMessage(card.descKo, 'info', 8000);
+    if (this._cardDescEl && card.descKo) {
+      this._cardDescEl.textContent = card.descKo;
+      this._cardDescEl.style.display = '';
+    }
 
     if (card.targetType === 'none') {
       const result = this._engine.playCard(this._myPlayerId, cardId);
@@ -310,6 +314,7 @@ class Renderer {
     document.querySelectorAll('.hamster').forEach(h => {
       h.classList.remove('hamster--targetable', 'hamster--untargetable');
     });
+    if (this._cardDescEl) this._cardDescEl.style.display = 'none';
   }
 
   _updateTurnIndicator(state) {
