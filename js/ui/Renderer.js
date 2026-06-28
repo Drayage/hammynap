@@ -83,6 +83,7 @@ class Renderer {
     } else {
       this._renderHand(next);
       this._clearSelection(next);
+      if (this._cardDescEl) this._cardDescEl.textContent = '';
     }
 
     this._updateTurnIndicator(next);
@@ -232,6 +233,7 @@ class Renderer {
 
     if (this._selectedCard === cardId) {
       this._clearSelection(state);
+      if (this._cardDescEl) this._cardDescEl.textContent = '';
       return;
     }
 
@@ -317,7 +319,6 @@ class Renderer {
     document.querySelectorAll('.hamster').forEach(h => {
       h.classList.remove('hamster--targetable', 'hamster--untargetable');
     });
-    if (this._cardDescEl) this._cardDescEl.textContent = '';
   }
 
   _updateTurnIndicator(state) {

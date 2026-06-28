@@ -525,7 +525,7 @@ html, body {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 4px 6px 4px;
+  padding: 16px 10px 6px;
   align-items: flex-end;
 }
 
