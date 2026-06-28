@@ -295,10 +295,9 @@ function getHamster(state, playerId, hamsterId) {
 function checkWin(state) {
   const isExpansion = state.mode.includes('expansion');
   for (const [playerId, player] of Object.entries(state.players)) {
-    const won = isExpansion
-      ? player.hamsters.every(h => h.attachments.ribbon)
-      : player.hamsters.every(h => h.sleeping);
-    if (won) return playerId;
+    const allSleeping = player.hamsters.every(h => h.sleeping);
+    const allRibbon = isExpansion && player.hamsters.every(h => h.attachments.ribbon);
+    if (allSleeping || allRibbon) return playerId;
   }
   return null;
 }

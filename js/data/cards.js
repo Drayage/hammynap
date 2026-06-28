@@ -129,7 +129,7 @@ const CARDS = {
     nameKo: '리본',
     emoji: '🎀',
     expansionOnly: true,
-    deckCount: 8,
+    deckCount: 16,
     targetType: 'hamster',
     targetOwner: 'self',
     targetConditions: [
@@ -143,10 +143,10 @@ const CARDS = {
 
   escape: {
     id: 'escape',
-    nameKo: '도망',
-    emoji: '🏃',
+    nameKo: '리본 제거',
+    emoji: '✂️',
     expansionOnly: true,
-    deckCount: 4,
+    deckCount: 16,
     targetType: 'hamster',
     targetOwner: 'opponent',
     targetConditions: [
@@ -163,7 +163,7 @@ const CARDS = {
     nameKo: '행운의 새',
     emoji: '🐦',
     expansionOnly: true,
-    deckCount: 2,
+    deckCount: 4,
     targetType: 'none',
     targetOwner: null,
     targetConditions: [],

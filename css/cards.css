@@ -86,6 +86,12 @@
   height: 100%;
 }
 
+.hamster__body          { z-index: 1; }
+.hamster__blanket       { z-index: 2; }
+.hamster__ribbon-overlay{ z-index: 3; }
+.hamster__case          { z-index: 4; pointer-events: none; }
+.hamster__badge         { z-index: 5; }
+
 .hamster__badge {
   position: absolute;
   font-size: 1.1rem;
@@ -104,7 +110,8 @@
 }
 
 /* 자는 햄스터: 살짝 흔들리는 애니메이션 */
-.hamster--sleeping .hamster__body {
+.hamster--sleeping .hamster__body,
+.hamster--sleeping .hamster__blanket {
   animation: gentleBreath 3s ease-in-out infinite;
 }
 
