@@ -24,7 +24,7 @@ function createInitialState(config) {
   return {
     mode,
     phase: 'playing',
-    currentPlayer: playerSetup[0].id,
+    currentPlayer: playerSetup[Math.floor(Math.random() * playerSetup.length)].id,
     playerOrder: playerSetup.map(p => p.id),
     players,
     deck: remaining,

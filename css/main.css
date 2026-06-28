@@ -706,6 +706,23 @@ html, body {
   line-height: 1.4;
 }
 
+/* ---- 세션 복원 배너 ---- */
+.session-restore-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-warn);
+  border: 1px solid #F0C040;
+  border-radius: var(--radius-card);
+  padding: 10px 14px;
+  margin: 12px 16px 0;
+  font-size: 0.9rem;
+}
+.session-restore-text {
+  flex: 1;
+  color: var(--color-text);
+}
+
 /* ---- 반응형 ---- */
 @media (min-width: 600px) {
   .board { flex-direction: row; flex-wrap: wrap; }

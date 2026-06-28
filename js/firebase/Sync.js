@@ -17,25 +17,29 @@ class FirebaseSync {
     if (!firebase.apps.length) {
       firebase.initializeApp(FIREBASE_CONFIG);
     }
-    this._db     = firebase.database();
-    this._roomId = null;
-    this._isHost = false;
-    this._engine = null;
-    this._statusCb = null;
-    this._lastActionTs = 0;
-    this._offCallbacks = [];  // Firebase listener cleanup
+    this._db               = firebase.database();
+    this._roomId           = null;
+    this._isHost           = false;
+    this._engine           = null;
+    this._statusCb         = null;
+    this._lastActionTs     = 0;
+    this._offCallbacks     = [];
+    this._tournamentMgr    = null;
+    this._lastRemoteAction = null;
+    this._onTournamentCb   = null;
+    this._hostEngineOff    = null;
   }
 
+  setTournamentManager(tm) { this._tournamentMgr = tm; }
+  onTournamentUpdate(cb)    { this._onTournamentCb = cb; }
+
   // ---- 방 만들기 (호스트) ----------------------------------------
-  // engine은 아직 startGame() 안 된 상태. createRoom 후 게스트 참가 때 startGame.
   async createRoom(engine, config) {
-    this._engine = engine;
     this._isHost = true;
     this._roomId = this._generateCode();
 
     const roomRef = this._db.ref(`games/${this._roomId}`);
 
-    // 초기 메타 기록
     await roomRef.set({
       meta: {
         status:    'waiting',
@@ -44,7 +48,9 @@ class FirebaseSync {
         createdAt: Date.now()
       },
       state:         null,
-      pendingAction: null
+      lastAction:    null,
+      pendingAction: null,
+      tournament:    null
     });
 
     // 게스트 참가 감지
@@ -65,16 +71,40 @@ class FirebaseSync {
     });
     this._offCallbacks.push(() => actionRef.off('value', actionHandler));
 
-    // 호스트의 상태 변화 → Firebase push
-    engine.on('stateChanged', ({ next }) => {
-      if (!this._isHost || !next || !this._roomId) return;
-      this._db.ref(`games/${this._roomId}/state`).set(next);
-    });
+    this._attachHostEngine(engine);
 
-    // 호스트 접속 끊길 때 방 삭제
-    roomRef.onDisconnect().remove();
+    // 비정상 접속 종료 시 방 상태만 마킹 (삭제 대신 → 재접속 가능)
+    roomRef.child('meta').onDisconnect().update({ status: 'host_disconnected' });
 
     return this._roomId;
+  }
+
+  _attachHostEngine(engine) {
+    // 이전 엔진 리스너 정리
+    if (this._hostEngineOff) {
+      this._hostEngineOff();
+      this._hostEngineOff = null;
+    }
+    this._engine = engine;
+    this._hostEngineOff = engine.on('stateChanged', ({ next, action }) => {
+      if (!this._isHost || !next || !this._roomId) return;
+      const cleanAction = action ? {
+        type:            action.type            || null,
+        playerId:        action.playerId        || null,
+        cardId:          action.cardId          || null,
+        targetPlayerId:  action.targetPlayerId  || null,
+        targetHamsterId: action.targetHamsterId || null,
+      } : null;
+      const update = { state: next, lastAction: cleanAction };
+      if (this._tournamentMgr) update.tournament = this._tournamentMgr.getState();
+      this._db.ref(`games/${this._roomId}`).update(update);
+    });
+  }
+
+  // 온라인 토너먼트: 새 라운드 시 엔진 교체
+  attachNewRound(engine) {
+    if (!this._isHost || !this._roomId) return;
+    this._attachHostEngine(engine);
   }
 
   // ---- 방 메타 조회 (게스트 참가 전) ----------------------------
@@ -82,35 +112,77 @@ class FirebaseSync {
     const snap = await this._db.ref(`games/${roomId}/meta`).get();
     if (!snap.exists()) throw new Error('방을 찾을 수 없습니다. 코드를 확인해 주세요.');
     const meta = snap.val();
-    if (meta.status !== 'waiting') throw new Error('이미 게임이 시작된 방입니다.');
+    if (meta.status === 'host_disconnected') throw new Error('호스트가 연결 중이 아닙니다. 잠시 후 다시 시도하세요.');
+    if (meta.status === 'ended')             throw new Error('이미 종료된 방입니다.');
     return { config: JSON.parse(meta.config) };
   }
 
   // ---- 방 참가 (게스트) ----------------------------------------
-  // engine은 이미 생성+renderer 연결된 상태
   async joinRoom(roomId, engine) {
     this._engine = engine;
     this._isHost = false;
     this._roomId = roomId.toUpperCase().trim();
 
-    // 게스트 등록
     await this._db.ref(`games/${this._roomId}/meta`).update({
       guestId: 'p2',
       status:  'playing'
     });
 
-    // 상태 수신 → 엔진에 주입
-    const stateRef = this._db.ref(`games/${this._roomId}/state`);
+    // lastAction 구독 (state보다 먼저 — 레이스 최소화)
+    const actionRef = this._db.ref(`games/${this._roomId}/lastAction`);
+    const actionCb  = actionRef.on('value', snap => {
+      this._lastRemoteAction = snap.val() || null;
+    });
+    this._offCallbacks.push(() => actionRef.off('value', actionCb));
+
+    // 토너먼트 구독
+    const tmRef = this._db.ref(`games/${this._roomId}/tournament`);
+    const tmCb  = tmRef.on('value', snap => {
+      const ts = snap.val();
+      if (ts && this._onTournamentCb) this._onTournamentCb(ts);
+    });
+    this._offCallbacks.push(() => tmRef.off('value', tmCb));
+
+    // 상태 수신 → 엔진 주입
+    const stateRef    = this._db.ref(`games/${this._roomId}/state`);
     const stateHandler = stateRef.on('value', snap => {
       const state = snap.val();
       if (!state || !this._engine) return;
-      this._applyRemoteState(state);
+      this._applyRemoteState(state, this._lastRemoteAction);
     });
     this._offCallbacks.push(() => stateRef.off('value', stateHandler));
   }
 
+  // ---- 호스트로 재접속 ----------------------------------------
+  async rejoinAsHost(roomId, engine, config) {
+    this._isHost = true;
+    this._roomId = roomId.toUpperCase().trim();
+
+    // Firebase에서 현재 상태 가져오기
+    const snap = await this._db.ref(`games/${this._roomId}/state`).get();
+    if (!snap.exists() || !snap.val()) throw new Error('저장된 게임 상태가 없습니다.');
+    const savedState = snap.val();
+
+    await this._db.ref(`games/${this._roomId}/meta`).update({ status: 'playing' });
+
+    // 게스트 액션 수신 재시작
+    const actionRef = this._db.ref(`games/${this._roomId}/pendingAction`);
+    const actionHandler = actionRef.on('value', snap => {
+      const action = snap.val();
+      if (!action || action.timestamp <= this._lastActionTs) return;
+      this._lastActionTs = action.timestamp;
+      actionRef.remove();
+      this._applyGuestAction(action);
+    });
+    this._offCallbacks.push(() => actionRef.off('value', actionHandler));
+
+    this._attachHostEngine(engine);
+    this._db.ref(`games/${this._roomId}/meta`).onDisconnect().update({ status: 'host_disconnected' });
+
+    return savedState;
+  }
+
   // ---- 게스트 액션 전송 ----------------------------------------
-  // 엔진 메서드를 대체: 로컬 적용 대신 Firebase로 전송
   sendAction(action) {
     if (this._isHost || !this._roomId) return;
     this._db.ref(`games/${this._roomId}/pendingAction`).set({
@@ -122,15 +194,25 @@ class FirebaseSync {
   // ---- 콜백 등록 -----------------------------------------------
   onStatusChange(cb) { this._statusCb = cb; }
 
-  // ---- 연결 해제 -----------------------------------------------
-  disconnect() {
-    this._offCallbacks.forEach(fn => fn());
-    this._offCallbacks = [];
-    this._roomId = null;
-    this._engine = null;
+  // ---- 방 취소 (호스트가 명시적으로 취소) ------------------------
+  cancelRoom() {
+    if (this._roomId) {
+      this._db.ref(`games/${this._roomId}`).remove().catch(() => {});
+    }
+    this.disconnect();
   }
 
-  // ---- 내부 ----
+  // ---- 연결 해제 (게임 종료 / 로비 복귀) -----------------------
+  disconnect() {
+    if (this._hostEngineOff) { this._hostEngineOff(); this._hostEngineOff = null; }
+    this._offCallbacks.forEach(fn => fn());
+    this._offCallbacks = [];
+    this._roomId   = null;
+    this._engine   = null;
+    this._isHost   = false;
+  }
+
+  // ---- 내부 ----------------------------------------------------
 
   _applyGuestAction(action) {
     if (!action || !this._engine) return;
@@ -143,19 +225,44 @@ class FirebaseSync {
     }
   }
 
-  _applyRemoteState(state) {
+  _applyRemoteState(state, action = null) {
     if (!this._engine) return;
-    const prev      = this._engine._state;
-    const wasEnded  = prev?.phase === 'ended';
-    this._engine._state = state;
-    this._engine.emit('stateChanged', { prev, next: state, action: null });
-    if (!wasEnded && state.phase === 'ended' && state.winner) {
-      this._engine.emit('gameOver', { winner: state.winner });
+    // Firebase는 null/undefined 필드를 제거함 → 기본값 복원
+    const sanitized = {
+      ...state,
+      deck:            Array.isArray(state.deck)        ? state.deck        : [],
+      discardPile:     Array.isArray(state.discardPile) ? state.discardPile : [],
+      winner:          state.winner          ?? null,
+      luckyBirdPlayer: state.luckyBirdPlayer ?? null,
+      luckyBirdActive: state.luckyBirdActive ?? false,
+    };
+    // playerOrder 복원
+    if (!Array.isArray(sanitized.playerOrder)) {
+      sanitized.playerOrder = Object.keys(sanitized.players ?? {});
+    }
+    // 각 플레이어 hand/hamsters 배열 복원
+    for (const player of Object.values(sanitized.players ?? {})) {
+      if (!Array.isArray(player.hand))     player.hand     = [];
+      if (!Array.isArray(player.hamsters)) player.hamsters = [];
+    }
+
+    const prev     = this._engine._state;
+    const wasEnded = prev?.phase === 'ended';
+    this._engine._state = sanitized;
+
+    // 이전 라운드가 끝났고 새 게임이 시작됐으면 prev=null → _initialRender 강제
+    this._engine.emit('stateChanged', {
+      prev:   wasEnded ? null : prev,
+      next:   sanitized,
+      action
+    });
+    if (!wasEnded && sanitized.phase === 'ended' && sanitized.winner) {
+      this._engine.emit('gameOver', { winner: sanitized.winner });
     }
   }
 
   _generateCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // I, O 제외
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     let code = '';
     for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
     return code;

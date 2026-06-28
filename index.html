@@ -19,6 +19,14 @@
     </header>
 
     <main class="lobby-main">
+
+      <!-- 세션 복원 배너 -->
+      <div id="session-restore-banner" class="session-restore-banner" style="display:none">
+        <span id="session-restore-text" class="session-restore-text"></span>
+        <button id="btn-restore-session" class="btn btn--primary btn--small">이어하기</button>
+        <button id="btn-dismiss-restore" class="btn btn--icon">✕</button>
+      </div>
+
       <section class="mode-section">
         <h2 class="section-title">싱글플레이</h2>
         <div class="mode-buttons">
@@ -41,6 +49,30 @@
           <button id="btn-show-join" class="btn btn--mode">
             🚪 방 참가
           </button>
+        </div>
+
+        <!-- 방 설정 패널 (방 만들기 클릭 후) -->
+        <div id="online-setup-panel" style="display:none">
+          <div class="setting-row">
+            <label for="online-player-count">총 인원</label>
+            <select id="online-player-count" class="setting-select">
+              <option value="2">2인 (나 + 게스트)</option>
+              <option value="3">3인 (나 + 게스트 + AI 1)</option>
+              <option value="4">4인 (나 + 게스트 + AI 2)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <label for="online-expansion">확장팩 포함</label>
+            <input id="online-expansion" type="checkbox" class="setting-check">
+          </div>
+          <div class="setting-row">
+            <label for="online-single">단판 게임 (토너먼트 없음)</label>
+            <input id="online-single" type="checkbox" class="setting-check">
+          </div>
+          <div class="mode-buttons">
+            <button id="btn-open-room" class="btn btn--primary">방 열기</button>
+            <button id="btn-cancel-setup" class="btn btn--text">취소</button>
+          </div>
         </div>
 
         <!-- 방 만든 후: 코드 표시 + 대기 -->
