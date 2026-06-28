@@ -75,8 +75,9 @@ class Renderer {
     const myId = this._myPlayerId;
     const myHandChanged = JSON.stringify(prev.players[myId]?.hand) !== JSON.stringify(next.players[myId]?.hand);
     const isOpponentAction = action?.playerId != null && action.playerId !== myId;
+    const turnCameToMe = prev.currentPlayer !== myId && next.currentPlayer === myId;
 
-    if (isOpponentAction && !myHandChanged) {
+    if (isOpponentAction && !myHandChanged && !turnCameToMe) {
       this._refreshHandPlayability(next);
     } else {
       this._renderHand(next);
