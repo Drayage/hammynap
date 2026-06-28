@@ -284,6 +284,23 @@ html, body {
   flex-wrap: nowrap;
 }
 
+/* ---- 내 햄스터 영역 (손패 바로 위) ---- */
+.my-zone {
+  padding: 8px 12px 4px;
+  border-top: 1.5px solid var(--color-accent);
+  background: #F4FFF4;
+}
+
+.my-zone .player-zone--own {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.my-zone .player-name {
+  margin-bottom: 6px;
+}
+
 /* ---- 손패 ---- */
 .hand-area {
   background: var(--color-surface);

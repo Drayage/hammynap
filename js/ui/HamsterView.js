@@ -52,9 +52,9 @@ function buildHamsterHTML(h) {
   }
 
   if (h.attachments.soundproofCase) {
-    layers.push(`<div class="hamster__layer hamster__case">${caseSvg(h.attachments.caseLock)}</div>`);
+    layers.push(`<div class="hamster__layer hamster__case">${caseSvg(h.attachments.caseLock, h.attachments.waterBottle)}</div>`);
     if (h.attachments.waterBottle) {
-      layers.push(`<div class="hamster__badge hamster__bottle">💧</div>`);
+      layers.push(`<div class="hamster__badge hamster__bottle">🧱</div>`);
     }
   }
 
@@ -113,17 +113,22 @@ function ribbonSvg() {
   </svg>`;
 }
 
-// Case SVG — transparent green box, larger than before
-function caseSvg(locked) {
+// Case SVG — transparent box; turns brick-red when reinforced (waterBottle)
+function caseSvg(locked, reinforced) {
+  const fill   = reinforced ? '#C8543A' : '#C8E6C9';
+  const stroke = reinforced ? '#8B3012' : '#81C784';
+  const lid    = reinforced ? '#8B3012' : '#81C784';
   const lockIcon = locked
-    ? `<rect x="28" y="40" width="24" height="18" rx="3" fill="#795548" opacity="0.85"/>
-       <path d="M34 40 V34 Q40 28 46 34 V40" stroke="#795548" stroke-width="3" fill="none" stroke-linecap="round"/>`
+    ? `<rect x="28" y="40" width="24" height="18" rx="3" fill="#5D2A10" opacity="0.90"/>
+       <path d="M34 40 V34 Q40 28 46 34 V40" stroke="#5D2A10" stroke-width="3" fill="none" stroke-linecap="round"/>`
     : '';
+  const bodyOpacity = reinforced ? '0.42' : '0.28';
+  const lidOpacity  = reinforced ? '0.60' : '0.42';
   return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" class="case-svg">
     <rect x="3" y="12" width="74" height="65" rx="10"
-          fill="#C8E6C9" stroke="#81C784" stroke-width="2.5" opacity="0.28"/>
+          fill="${fill}" stroke="${stroke}" stroke-width="3" opacity="${bodyOpacity}"/>
     <rect x="3" y="12" width="74" height="17" rx="10"
-          fill="#81C784" opacity="0.42"/>
+          fill="${lid}" opacity="${lidOpacity}"/>
     ${lockIcon}
   </svg>`;
 }

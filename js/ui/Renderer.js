@@ -49,6 +49,9 @@ class Renderer {
 
   _initialRender(state) {
     this._root.innerHTML = '';
+    const myZoneEl = document.getElementById('my-zone');
+    if (myZoneEl) myZoneEl.innerHTML = '';
+
     const boardEl = document.createElement('div');
     boardEl.className = 'board';
 
@@ -71,7 +74,12 @@ class Renderer {
         hamsterRow.appendChild(el);
       }
       zone.appendChild(hamsterRow);
-      boardEl.appendChild(zone);
+
+      if (isOwn && myZoneEl) {
+        myZoneEl.appendChild(zone);
+      } else {
+        boardEl.appendChild(zone);
+      }
     }
 
     this._root.appendChild(boardEl);
