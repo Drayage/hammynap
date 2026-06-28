@@ -52,7 +52,6 @@ class Renderer {
               [{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
               { duration: 220, easing: 'ease-in' }
             ).onfinish = () => {
-              el.innerHTML = hamsterHtml(hamster);
               updateHamsterElement(el, oldH, hamster);
               el.animate(
                 [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
@@ -62,7 +61,6 @@ class Renderer {
               setTimeout(() => el.classList.remove('hamster--just-changed'), 1600);
             };
           } else {
-            el.innerHTML = hamsterHtml(hamster);
             updateHamsterElement(el, oldH, hamster);
             if (!hamster.sleeping && oldH.sleeping) this._animator.wakeHamster(el);
             else if (hamster.sleeping && !oldH.sleeping) this._animator.sleepHamster(el);
@@ -241,6 +239,8 @@ class Renderer {
     document.querySelectorAll('.card').forEach(c => c.classList.remove('card--selected'));
     el.classList.add('card--selected');
 
+    if (card.descKo) this._showMessage(card.descKo, 'info', 8000);
+
     if (card.targetType === 'none') {
       const result = this._engine.playCard(this._myPlayerId, cardId);
       if (result.ok) this._animator.playCard(el, null, null);
@@ -333,7 +333,7 @@ class Renderer {
     }
   }
 
-  _showMessage(text, type = 'info') {
+  _showMessage(text, type = 'info', duration = 2500) {
     if (!this._msgEl) return;
     this._msgEl.textContent = text;
     this._msgEl.className = `game-message game-message--${type}`;
@@ -341,7 +341,7 @@ class Renderer {
     clearTimeout(this._msgTimer);
     this._msgTimer = setTimeout(() => {
       if (this._msgEl) this._msgEl.style.display = 'none';
-    }, 2500);
+    }, duration);
   }
 
   _onGameOver(winner) {

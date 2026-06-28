@@ -232,6 +232,8 @@ async function createOnlineRoom() {
       window.game = engine;
       renderTournamentInfo();
       _saveOnlineHostSession(roomCode, _config);
+      document.getElementById('round-over-overlay').style.display = 'none';
+      document.getElementById('game-over-overlay').style.display  = 'none';
       showView('view-game');
     }, 600);
   });
@@ -308,6 +310,8 @@ async function joinOnlineGame() {
   window.game = engine;
   renderTournamentInfo();
   _saveOnlineGuestSession(roomId);
+  document.getElementById('round-over-overlay').style.display = 'none';
+  document.getElementById('game-over-overlay').style.display  = 'none';
   showView('view-game');
 }
 

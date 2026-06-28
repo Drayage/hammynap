@@ -164,29 +164,32 @@ class FirebaseSync {
     if (!assignedSlot) throw new Error('방이 꽉 찼거나 참가할 수 없습니다.');
     this._mySlot = assignedSlot;
 
-    // lastAction 구독 (state보다 먼저 — 레이스 최소화)
-    const actionRef = this._db.ref(`games/${this._roomId}/lastAction`);
-    const actionCb  = actionRef.on('value', snap => {
-      this._lastRemoteAction = snap.val() || null;
-    });
-    this._offCallbacks.push(() => actionRef.off('value', actionCb));
+    // 게임 루트 구독: state + lastAction을 같은 스냅샷에서 읽어 레이스 방지
+    let _prevStateJson = null;
+    let _firstState    = true;
+    const gameRef      = this._db.ref(`games/${this._roomId}`);
+    const gameHandler  = gameRef.on('value', snap => {
+      const data = snap.val();
+      if (!this._engine) return;
 
-    // 토너먼트 구독
-    const tmRef = this._db.ref(`games/${this._roomId}/tournament`);
-    const tmCb  = tmRef.on('value', snap => {
-      const ts = snap.val();
-      if (ts && this._onTournamentCb) this._onTournamentCb(ts);
-    });
-    this._offCallbacks.push(() => tmRef.off('value', tmCb));
+      // 토너먼트 업데이트
+      if (data?.tournament && this._onTournamentCb) {
+        this._onTournamentCb(data.tournament);
+      }
 
-    // 상태 수신 → 엔진 주입
-    const stateRef    = this._db.ref(`games/${this._roomId}/state`);
-    const stateHandler = stateRef.on('value', snap => {
-      const state = snap.val();
-      if (!state || !this._engine) return;
-      this._applyRemoteState(state, this._lastRemoteAction);
+      // state가 없거나 변경이 없으면 스킵
+      if (!data?.state) return;
+      const stateJson = JSON.stringify(data.state);
+      if (stateJson === _prevStateJson) return;
+      _prevStateJson = stateJson;
+
+      // 첫 번째 수신: lastAction은 이전 게임 잔여일 수 있어 무시
+      const action = _firstState ? null : (data.lastAction || null);
+      _firstState  = false;
+
+      this._applyRemoteState(data.state, action);
     });
-    this._offCallbacks.push(() => stateRef.off('value', stateHandler));
+    this._offCallbacks.push(() => gameRef.off('value', gameHandler));
   }
 
   // ---- 호스트로 재접속 ----------------------------------------
