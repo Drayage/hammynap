@@ -184,8 +184,8 @@ class Renderer {
       this._handEl.appendChild(el);
     }
 
-    // 전부 버리기 버튼 (사용 가능한 카드가 없고 행운의 새 모드가 아닐 때)
-    if (isMyTurn && !isLuckyBirdPhase && canDiscardAllDraw(state, this._myPlayerId)) {
+    // 전부 버리기 버튼 (내 턴, 행운의 새 아닐 때 항상 표시)
+    if (isMyTurn && !isLuckyBirdPhase && player.hand.length > 0) {
       const discardAllBtn = document.createElement('button');
       discardAllBtn.className = 'btn btn--discard-all';
       discardAllBtn.textContent = '전부 버리기';
