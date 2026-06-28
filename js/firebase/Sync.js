@@ -164,6 +164,9 @@ class FirebaseSync {
     if (!assignedSlot) throw new Error('방이 꽉 찼거나 참가할 수 없습니다.');
     this._mySlot = assignedSlot;
 
+    // 비정상 종료 시 슬롯 자동 해제 → 재접속 가능
+    this._db.ref(`games/${this._roomId}/meta/joinedSlots/${assignedSlot}`).onDisconnect().remove();
+
     // 게임 루트 구독: state + lastAction을 같은 스냅샷에서 읽어 레이스 방지
     let _prevStateJson = null;
     let _firstState    = true;
@@ -256,11 +259,17 @@ class FirebaseSync {
   _applyGuestAction(action) {
     if (!action || !this._engine) return;
     const { type, playerId, cardId, targetPlayerId, targetHamsterId } = action;
+    let result;
     switch (type) {
-      case 'PLAY_CARD':        this._engine.playCard(playerId, cardId, targetPlayerId, targetHamsterId); break;
-      case 'DISCARD_CARD':     this._engine.discardCard(playerId, cardId);    break;
-      case 'DISCARD_ALL_DRAW': this._engine.discardAllAndDraw(playerId);      break;
-      case 'SURRENDER':        this._engine.surrender(playerId);              break;
+      case 'PLAY_CARD':        result = this._engine.playCard(playerId, cardId, targetPlayerId, targetHamsterId); break;
+      case 'DISCARD_CARD':     result = this._engine.discardCard(playerId, cardId);    break;
+      case 'DISCARD_ALL_DRAW': result = this._engine.discardAllAndDraw(playerId);      break;
+      case 'SURRENDER':        result = this._engine.surrender(playerId);              break;
+    }
+    // 거부된 액션: 현재 상태를 Firebase에 강제 push → 게스트 낙관적 업데이트 롤백
+    if (result && !result.ok && this._roomId) {
+      const currentState = this._engine.getState();
+      if (currentState) this._db.ref(`games/${this._roomId}/state`).set(currentState);
     }
   }
 

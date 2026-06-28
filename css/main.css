@@ -733,8 +733,10 @@ html, body {
   color: var(--color-text);
 }
 
-/* ---- 반응형 ---- */
-@media (min-width: 600px) {
-  .board { flex-direction: row; flex-wrap: wrap; }
-  .player-zone { flex: 1; min-width: 220px; }
+/* ---- 데스크탑: 게임 뷰 가운데 고정 ---- */
+#view-game {
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
 }
