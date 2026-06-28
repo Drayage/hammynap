@@ -1,9 +1,4 @@
-import { CARDS } from '../data/cards.js';
-import { createHamsterElement, updateHamsterElement } from './HamsterView.js';
-import { CardAnimator } from './CardAnimator.js';
-import { getValidTargets } from '../engine/RuleEngine.js';
-
-export class Renderer {
+class Renderer {
   constructor(engine) {
     this._engine = engine;
     this._animator = new CardAnimator();

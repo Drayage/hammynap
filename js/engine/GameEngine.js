@@ -1,7 +1,4 @@
-import { createInitialState, applyAction, checkWin } from './StateManager.js';
-import { validatePlay } from './RuleEngine.js';
-
-export class GameEngine {
+class GameEngine {
   constructor() {
     this._state = null;
     this._listeners = {};

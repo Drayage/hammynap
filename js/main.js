@@ -1,9 +1,5 @@
-import { GameEngine }   from './engine/GameEngine.js';
-import { AiPlayer }     from './engine/AiPlayer.js';
-import { Renderer }     from './ui/Renderer.js';
-import { RecordManager }from './records/RecordManager.js';
-import { RecordViewer } from './records/RecordViewer.js';
-import { HAMSTER_COUNT_BY_PLAYERS } from './data/hamsters.js';
+// HAMSTER_COUNT_BY_PLAYERS, GameEngine, AiPlayer, Renderer, RecordManager, RecordViewer
+// 모두 전역 변수로 로드됨 (index.html 스크립트 태그 순서 참고)
 
 const VIEWS = ['view-lobby', 'view-game', 'view-pass-screen'];
 
@@ -36,10 +32,8 @@ function setupLobby() {
   document.getElementById('btn-start-passplay')?.addEventListener('click', () => startGame('passplay'));
   document.getElementById('btn-open-records')?.addEventListener('click', () => recordViewer?.open());
 
-  // 기록 모달 닫기
   document.getElementById('records-close')?.addEventListener('click', () => recordViewer?.close());
 
-  // 불러오기
   document.getElementById('btn-import-record')?.addEventListener('change', async e => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,7 +62,7 @@ function buildConfig(mode) {
   if (mode === 'ai') {
     playerSetup.push({ id: 'p1', type: 'human', name: '나' });
     for (let i = 2; i <= playerCount; i++) {
-      playerSetup.push({ id: `p${i}`, type: 'ai', name: `AI ${i-1}` });
+      playerSetup.push({ id: `p${i}`, type: 'ai', name: `AI ${i - 1}` });
     }
   } else {
     for (let i = 1; i <= playerCount; i++) {
@@ -95,25 +89,34 @@ function startGame(mode) {
     if (p.type === 'ai') new AiPlayer(p.id, engine);
   }
 
-  engine.startGame(config);
-
-  showView('view-game');
-
-  // 게임 종료 오버레이 버튼
-  document.getElementById('btn-back-to-lobby')?.addEventListener('click', () => {
-    showView('view-lobby');
-    document.getElementById('game-over-overlay').style.display = 'none';
-  }, { once: true });
-
-  // pass-and-play: 턴 종료 후 패스 화면 표시
+  // pass-and-play: startGame() 이전에 리스너 등록 (Bug 3 수정)
   if (mode === 'passplay') {
+    let firstTurn = true;
     engine.on('turnStart', ({ playerId }) => {
       const state = engine.getState();
       if (!state || state.phase !== 'playing') return;
+      // 첫 번째 턴은 게임 시작과 동시에 발생 - 플레이어 1은 이미 준비됨
+      if (firstTurn && playerId === 'p1') {
+        firstTurn = false;
+        return;
+      }
+      firstTurn = false;
       const playerName = state.players[playerId]?.name;
       showPassScreen(playerName, playerId);
     });
   }
+
+  engine.startGame(config);
+
+  // 콘솔 디버깅용
+  window.game = engine;
+
+  showView('view-game');
+
+  document.getElementById('btn-back-to-lobby')?.addEventListener('click', () => {
+    showView('view-lobby');
+    document.getElementById('game-over-overlay').style.display = 'none';
+  }, { once: true });
 }
 
 function showPassScreen(playerName, playerId) {
@@ -130,8 +133,8 @@ function showPassScreen(playerName, playerId) {
   }, { once: true });
 }
 
-document.addEventListener('DOMContentLoaded', init);
-
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+init();

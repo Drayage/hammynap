@@ -1,9 +1,6 @@
-import { CARDS } from '../data/cards.js';
-import { getValidTargets } from './RuleEngine.js';
-
 const AI_DELAY_MS = 800;
 
-export class AiPlayer {
+class AiPlayer {
   constructor(playerId, engine) {
     this._id = playerId;
     this._engine = engine;

@@ -1,6 +1,4 @@
-import { CARDS, getNestedField } from '../data/cards.js';
-
-export function validatePlay(state, action) {
+function validatePlay(state, action) {
   const { playerId, cardId, targetPlayerId, targetHamsterId } = action;
 
   if (!state.extraTurnActive && state.currentPlayer !== playerId) {
@@ -53,7 +51,7 @@ export function validatePlay(state, action) {
   return ok();
 }
 
-export function getValidTargets(state, playerId, cardId) {
+function getValidTargets(state, playerId, cardId) {
   const card = CARDS[cardId];
   if (!card) return [];
   if (card.targetType === 'none') return [];

@@ -1,6 +1,4 @@
-import { CARDS } from '../data/cards.js';
-
-export class RecordViewer {
+class RecordViewer {
   constructor(recordManager) {
     this._mgr = recordManager;
     this._modal = document.getElementById('records-modal');

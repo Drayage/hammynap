@@ -1,4 +1,4 @@
-export const CARDS = {
+const CARDS = {
   blanket: {
     id: 'blanket',
     nameKo: '이불 덮기',
@@ -40,7 +40,7 @@ export const CARDS = {
     expansionOnly: false,
     deckCount: 4,
     targetType: 'all',
-    targetOwner: 'opponent',
+    targetOwner: 'any',
     targetConditions: [
       { field: 'sleeping', value: true }
     ],
@@ -192,11 +192,11 @@ export const CARDS = {
   }
 };
 
-export function getNestedField(obj, path) {
+function getNestedField(obj, path) {
   return path.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
-export function buildDeck(includeExpansion) {
+function buildDeck(includeExpansion) {
   const deck = [];
   for (const card of Object.values(CARDS)) {
     if (!includeExpansion && card.expansionOnly) continue;

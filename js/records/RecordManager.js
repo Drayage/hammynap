@@ -1,7 +1,7 @@
 const MAX_PER_TYPE = 5;
 const STORAGE_KEY = 'hammynap_records';
 
-export class RecordManager {
+class RecordManager {
   constructor(engine) {
     this._engine = engine;
     this._currentRecord = null;

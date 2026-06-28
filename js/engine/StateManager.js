@@ -1,9 +1,6 @@
-import { CARDS, buildDeck, getNestedField } from '../data/cards.js';
-import { createHamsters, HAMSTER_COUNT_BY_PLAYERS } from '../data/hamsters.js';
-
 const DEFAULT_HAND_SIZE = 3;
 
-export function createInitialState(config) {
+function createInitialState(config) {
   const { playerSetup, hamsterCount, mode } = config;
   const includeExpansion = mode.includes('expansion');
   const deck = buildDeck(includeExpansion);
@@ -37,7 +34,7 @@ export function createInitialState(config) {
   };
 }
 
-export function applyAction(state, action) {
+function applyAction(state, action) {
   switch (action.type) {
     case 'PLAY_CARD':    return applyPlayCard(state, action);
     case 'END_TURN':     return applyEndTurn(state, action);
@@ -258,7 +255,7 @@ function getHamster(state, playerId, hamsterId) {
   return state.players[playerId]?.hamsters.find(h => h.id === hamsterId);
 }
 
-export function checkWin(state) {
+function checkWin(state) {
   const isExpansion = state.mode.includes('expansion');
   for (const [playerId, player] of Object.entries(state.players)) {
     const won = isExpansion

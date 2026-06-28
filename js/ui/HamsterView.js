@@ -1,4 +1,4 @@
-export function createHamsterElement(hamster, playerId, isOwn) {
+function createHamsterElement(hamster, playerId, isOwn) {
   const el = document.createElement('div');
   el.className = 'hamster';
   el.dataset.hamsterId = hamster.id;
@@ -8,7 +8,7 @@ export function createHamsterElement(hamster, playerId, isOwn) {
   return el;
 }
 
-export function updateHamsterElement(el, oldH, newH) {
+function updateHamsterElement(el, oldH, newH) {
   const classes = [
     ['sleeping',            'hamster--sleeping'],
     ['soundproofCase',      'hamster--in-case'],

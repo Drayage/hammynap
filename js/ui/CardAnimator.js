@@ -1,4 +1,4 @@
-export class CardAnimator {
+class CardAnimator {
   playCard(cardEl, targetEl, onComplete) {
     if (!cardEl) { onComplete?.(); return; }
 
