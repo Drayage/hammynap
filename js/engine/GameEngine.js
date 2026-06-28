@@ -125,6 +125,11 @@ class GameEngine {
     if (!isRealtimeDiscard && this._state.currentPlayer !== playerId) {
       return { ok: false, reason: '지금 당신의 턴이 아닙니다.' };
     }
+    if (!canDiscardAllDraw(this._state, playerId)) {
+      this.emit('invalidAction', { reason: '사용 가능한 카드가 있을 때는 전부 버리기를 할 수 없습니다.' });
+      return { ok: false, reason: '사용 가능한 카드가 있습니다.' };
+    }
+
     const action = { type: 'DISCARD_ALL_DRAW', playerId };
     const prev = this._state;
 
