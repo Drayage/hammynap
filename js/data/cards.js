@@ -76,6 +76,7 @@ const CARDS = {
     targetType: 'hamster',
     targetOwner: 'self',
     targetConditions: [
+      { field: 'sleeping', value: true },
       { field: 'attachments.soundproofCase', value: true },
       { field: 'attachments.caseLock', value: false }
     ],
@@ -134,7 +135,7 @@ const CARDS = {
     targetConditions: [
       { field: 'attachments.ribbon', value: false }
     ],
-    blockedBy: [],
+    blockedBy: ['caseLock'],
     effects: [
       { type: 'setAttachment', field: 'ribbon', value: true }
     ]
@@ -168,7 +169,7 @@ const CARDS = {
     targetConditions: [],
     blockedBy: [],
     effects: [
-      { type: 'extraTurn', cardsToPlay: 'remainingHand' }
+      { type: 'luckyBird' }
     ]
   },
 

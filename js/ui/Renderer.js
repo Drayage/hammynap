@@ -41,14 +41,9 @@ class Renderer {
       }
     }
 
-    // 손패 업데이트
     this._renderHand(next);
-
-    // 턴 표시기
     this._updateTurnIndicator(next);
     this._updateDeckCount(next);
-
-    // 선택 초기화
     this._clearSelection(next);
   }
 
@@ -90,7 +85,17 @@ class Renderer {
     const player = state.players[this._myPlayerId];
     if (!player) return;
 
+    const isMyTurn = state.currentPlayer === this._myPlayerId;
+    const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
+    const canAct = isMyTurn || isLuckyBirdPhase;
+
     this._handEl.innerHTML = '';
+
+    // 행운의 새 진행 중 안내 메시지
+    if (isLuckyBirdPhase) {
+      this._showMessage('🐦 행운의 새! 남은 카드를 모두 사용하세요', 'info');
+    }
+
     for (const cardId of player.hand) {
       const card = CARDS[cardId];
       if (!card) continue;
@@ -102,36 +107,43 @@ class Renderer {
         <div class="card__name">${card.nameKo}</div>
       `;
       el.addEventListener('click', () => this._onCardClick(cardId, el));
+
+      // 버리기 버튼 (내 턴일 때만 표시)
+      if (canAct) {
+        const discardBtn = document.createElement('button');
+        discardBtn.className = 'card__discard-btn';
+        discardBtn.textContent = '✕';
+        discardBtn.title = '이 카드 버리기';
+        discardBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          this._engine.discardCard(this._myPlayerId, cardId);
+        });
+        el.appendChild(discardBtn);
+      }
+
       this._handEl.appendChild(el);
     }
 
-    // 사용 가능한 카드 없을 때: 전부 버리고 다시 뽑기 버튼
-    const isMyTurn = state.currentPlayer === this._myPlayerId;
-    if (isMyTurn && canDiscardAllDraw(state, this._myPlayerId)) {
-      const discardBtn = document.createElement('button');
-      discardBtn.className = 'btn btn--discard-all';
-      discardBtn.textContent = '전부 버리기';
-      discardBtn.title = '사용 가능한 카드가 없을 때 3장을 모두 버리고 새로 뽑습니다 (턴 종료)';
-      discardBtn.addEventListener('click', () => {
+    // 전부 버리기 버튼 (사용 가능한 카드가 없고 행운의 새 모드가 아닐 때)
+    if (isMyTurn && !isLuckyBirdPhase && canDiscardAllDraw(state, this._myPlayerId)) {
+      const discardAllBtn = document.createElement('button');
+      discardAllBtn.className = 'btn btn--discard-all';
+      discardAllBtn.textContent = '전부 버리기';
+      discardAllBtn.title = '3장 모두 버리고 새로 뽑기 (턴 종료)';
+      discardAllBtn.addEventListener('click', () => {
         this._engine.discardAllAndDraw(this._myPlayerId);
       });
-      this._handEl.appendChild(discardBtn);
+      this._handEl.appendChild(discardAllBtn);
     }
-
-    // 턴 종료 버튼
-    const endBtn = document.createElement('button');
-    endBtn.className = 'btn btn--end-turn';
-    endBtn.textContent = '턴 종료';
-    endBtn.addEventListener('click', () => {
-      this._engine.endTurn(this._myPlayerId);
-    });
-    this._handEl.appendChild(endBtn);
   }
 
   _onCardClick(cardId, el) {
     const state = this._engine.getState();
     if (!state || state.phase !== 'playing') return;
-    if (state.currentPlayer !== this._myPlayerId && !state.extraTurnActive) return;
+
+    const isMyTurn = state.currentPlayer === this._myPlayerId;
+    const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
+    if (!isMyTurn && !isLuckyBirdPhase) return;
 
     const card = CARDS[cardId];
     if (!card) return;
@@ -160,7 +172,7 @@ class Renderer {
       return;
     }
 
-    // hamster 타겟이 필요한 카드: 유효 타겟 하이라이트
+    // 햄스터 타겟 선택
     const validTargets = getValidTargets(state, this._myPlayerId, cardId);
     document.querySelectorAll('.hamster').forEach(h => {
       const pid = h.dataset.playerId;
@@ -203,7 +215,9 @@ class Renderer {
     if (!this._turnEl) return;
     const current = state.players[state.currentPlayer];
     const isMyTurn = state.currentPlayer === this._myPlayerId;
-    this._turnEl.textContent = isMyTurn ? '내 턴' : `${current?.name ?? ''}의 턴`;
+    let text = isMyTurn ? '내 턴' : `${current?.name ?? ''}의 턴`;
+    if (state.luckyBirdActive) text += ' 🐦';
+    this._turnEl.textContent = text;
     this._turnEl.className = `turn-indicator ${isMyTurn ? 'turn-indicator--mine' : ''}`;
   }
 

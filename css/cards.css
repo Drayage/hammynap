@@ -108,6 +108,37 @@
   animation: gentleBreath 3s ease-in-out infinite;
 }
 
+/* ---- 카드 내 버리기 버튼 ---- */
+.card__discard-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.15);
+  border: none;
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 2;
+}
+
+.card:hover .card__discard-btn,
+.card--selected .card__discard-btn {
+  opacity: 1;
+}
+
+.card__discard-btn:hover {
+  background: rgba(220, 50, 50, 0.8);
+}
+
 /* ---- 전부 버리기 버튼 ---- */
 .btn--discard-all {
   min-width: 72px;

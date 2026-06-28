@@ -52,22 +52,57 @@ class GameEngine {
       return { ok: true };
     }
 
-    this.emit('stateChanged', { prev, next: this._state, action });
-    this.emit('cardPlayed', { playerId, cardId, targetPlayerId, targetHamsterId });
+    if (this._state.luckyBirdActive) {
+      // 행운의 새 모드: 손패가 비었으면 종료, 아니면 계속 플레이
+      if (this._state.players[playerId].hand.length === 0) {
+        this._endLuckyBirdPhase(playerId, prev, action);
+      } else {
+        this.emit('stateChanged', { prev, next: this._state, action });
+        this.emit('cardPlayed', { playerId, cardId, targetPlayerId, targetHamsterId });
+      }
+    } else {
+      // 일반 플레이: 1장 사용 → 1장 보충 → 턴 종료 (자동)
+      this._state = applyAction(this._state, { type: 'END_TURN', playerId });
+      this.emit('stateChanged', { prev, next: this._state, action });
+      this.emit('cardPlayed', { playerId, cardId, targetPlayerId, targetHamsterId });
+      this.emit('turnStart', { playerId: this._state.currentPlayer });
+    }
+
     return { ok: true };
   }
 
-  endTurn(playerId) {
+  discardCard(playerId, cardId) {
     if (!this._state) return { ok: false, reason: '게임이 시작되지 않았습니다.' };
     if (this._state.phase !== 'playing') return { ok: false, reason: '게임이 진행 중이 아닙니다.' };
-    if (!this._state.extraTurnActive && this._state.currentPlayer !== playerId) {
+
+    const isMyTurn = this._state.currentPlayer === playerId;
+    const isLuckyBirdTurn = this._state.luckyBirdActive && this._state.luckyBirdPlayer === playerId;
+    if (!isMyTurn && !isLuckyBirdTurn) {
       return { ok: false, reason: '지금 당신의 턴이 아닙니다.' };
     }
 
+    const player = this._state.players[playerId];
+    if (!player?.hand.includes(cardId)) {
+      return { ok: false, reason: '해당 카드가 손패에 없습니다.' };
+    }
+
+    const action = { type: 'DISCARD_CARD', playerId, cardId };
     const prev = this._state;
-    this._state = applyAction(this._state, { type: 'END_TURN', playerId });
-    this.emit('stateChanged', { prev, next: this._state, action: { type: 'END_TURN', playerId } });
-    this.emit('turnStart', { playerId: this._state.currentPlayer });
+    this._state = applyAction(this._state, action);
+
+    if (isLuckyBirdTurn) {
+      if (this._state.players[playerId].hand.length === 0) {
+        this._endLuckyBirdPhase(playerId, prev, action);
+      } else {
+        this.emit('stateChanged', { prev, next: this._state, action });
+      }
+    } else {
+      // 일반 버리기: 1장 버리기 → 1장 보충 → 턴 종료 (자동)
+      this._state = applyAction(this._state, { type: 'END_TURN', playerId });
+      this.emit('stateChanged', { prev, next: this._state, action });
+      this.emit('turnStart', { playerId: this._state.currentPlayer });
+    }
+
     return { ok: true };
   }
 
@@ -88,7 +123,13 @@ class GameEngine {
     return { ok: true };
   }
 
-  // 원격 액션 적용 (AI 또는 Firebase 동기화용)
+  _endLuckyBirdPhase(playerId, prev, triggerAction) {
+    this._state = applyAction(this._state, { type: 'LUCKY_BIRD_END', playerId });
+    this.emit('stateChanged', { prev, next: this._state, action: triggerAction });
+    this.emit('turnStart', { playerId: this._state.currentPlayer });
+  }
+
+  // 원격 액션 적용 (Firebase 동기화용)
   applyRemoteAction(action) {
     if (!this._state) return;
     const prev = this._state;

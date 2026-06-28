@@ -1,7 +1,7 @@
 function validatePlay(state, action) {
   const { playerId, cardId, targetPlayerId, targetHamsterId } = action;
 
-  if (!state.extraTurnActive && state.currentPlayer !== playerId) {
+  if (state.currentPlayer !== playerId) {
     return fail('지금 당신의 턴이 아닙니다.');
   }
 

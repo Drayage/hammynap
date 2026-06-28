@@ -11,14 +11,14 @@ class AiPlayer {
       }
     });
 
+    // 행운의 새 모드: stateChanged에서 남은 카드 처리
     engine.on('stateChanged', ({ next }) => {
       if (
-        next?.mode?.includes('realtime') &&
         next?.phase === 'playing' &&
-        next?.currentPlayer !== this._id
+        next?.luckyBirdActive &&
+        next?.luckyBirdPlayer === this._id
       ) {
-        // 실시간 모드: 상대가 카드 낸 직후 즉시 반응 가능
-        // 현재는 별도 처리 없음 (turnStart 이벤트 없는 실시간은 추후 구현)
+        setTimeout(() => this._playNextLuckyBirdCard(), AI_DELAY_MS / 2);
       }
     });
   }
@@ -34,22 +34,44 @@ class AiPlayer {
     if (move) {
       this._engine.playCard(this._id, move.cardId, move.targetPlayerId, move.targetHamsterId);
     } else if (canDiscardAllDraw(state, this._id)) {
-      // 사용 가능한 카드 없음 → 전부 버리고 다시 뽑기 (턴 자동 종료)
       this._engine.discardAllAndDraw(this._id);
+    } else {
+      // 사용할 카드 없으면 첫 번째 카드 버리기
+      this._engine.discardCard(this._id, hand[0]);
+    }
+    // 턴은 자동 종료됨
+  }
+
+  _playNextLuckyBirdCard() {
+    const state = this._engine.getState();
+    if (!state?.luckyBirdActive || state?.luckyBirdPlayer !== this._id) return;
+
+    const hand = state.players[this._id].hand;
+    if (hand.length === 0) return;
+
+    const cardId = hand[0];
+    const card = CARDS[cardId];
+
+    if (card.targetType === 'none') {
+      this._engine.playCard(this._id, cardId);
       return;
     }
-
-    // 카드 낸 뒤 짧은 딜레이 후 턴 종료
-    setTimeout(() => {
-      const s = this._engine.getState();
-      if (s?.phase === 'playing' && s?.currentPlayer === this._id) {
-        this._engine.endTurn(this._id);
+    if (card.targetType === 'all') {
+      const check = validatePlay(state, { type: 'PLAY_CARD', playerId: this._id, cardId });
+      if (check.valid) { this._engine.playCard(this._id, cardId); return; }
+    } else {
+      const targets = getValidTargets(state, this._id, cardId);
+      if (targets.length > 0) {
+        const t = targets[0];
+        this._engine.playCard(this._id, cardId, t.playerId, t.hamsterId);
+        return;
       }
-    }, AI_DELAY_MS);
+    }
+    // 유효 대상 없음 → 버리기
+    this._engine.discardCard(this._id, cardId);
   }
 
   _chooseMove(state, hand) {
-    // 우선순위: 잠재우기(자기) → 방어 → 공격
     const priorities = ['blanket', 'soundproofCase', 'caseLock', 'waterBottle',
                         'blanketAway', 'cat', 'bigNoise', 'backpack',
                         'ribbon', 'escape', 'luckyBird'];
@@ -59,19 +81,17 @@ class AiPlayer {
       const card = CARDS[cardId];
       if (!card) continue;
 
-      if (card.targetType === 'none') {
-        return { cardId };
-      }
+      if (card.targetType === 'none') return { cardId };
 
       if (card.targetType === 'all') {
-        return { cardId };
+        const check = validatePlay(state, { type: 'PLAY_CARD', playerId: this._id, cardId });
+        if (check.valid) return { cardId };
+        continue;
       }
 
       const targets = getValidTargets(state, this._id, cardId);
       if (targets.length > 0) {
-        // 잠재우기 카드는 깨어있는 햄스터 중 첫 번째
-        const target = targets[0];
-        return { cardId, targetPlayerId: target.playerId, targetHamsterId: target.hamsterId };
+        return { cardId, targetPlayerId: targets[0].playerId, targetHamsterId: targets[0].hamsterId };
       }
     }
 

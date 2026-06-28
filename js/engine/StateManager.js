@@ -9,7 +9,7 @@ function createInitialState(config) {
   let remaining = [...deck];
 
   for (const p of playerSetup) {
-    const count = hamsterCount ?? HAMSTER_COUNT_BY_PLAYERS[playerSetup.length] ?? 3;
+    const count = hamsterCount ?? (includeExpansion ? 3 : HAMSTER_COUNT_BY_PLAYERS[playerSetup.length]) ?? 3;
     const hand = remaining.splice(0, DEFAULT_HAND_SIZE);
     players[p.id] = {
       id: p.id,
@@ -30,7 +30,8 @@ function createInitialState(config) {
     deck: remaining,
     discardPile: [],
     winner: null,
-    extraTurnActive: false
+    luckyBirdActive: false,
+    luckyBirdPlayer: null
   };
 }
 
@@ -38,11 +39,36 @@ function applyAction(state, action) {
   switch (action.type) {
     case 'PLAY_CARD':        return applyPlayCard(state, action);
     case 'END_TURN':         return applyEndTurn(state, action);
-    case 'DRAW_CARD':        return applyDrawCard(state, action);
+    case 'DISCARD_CARD':     return applyDiscardCard(state, action);
     case 'DISCARD_ALL_DRAW': return applyDiscardAllDraw(state, action);
+    case 'LUCKY_BIRD_END':   return applyLuckyBirdEnd(state, action);
     default:                 return state;
   }
 }
+
+// ---- 덱 재활용: 버린 패가 새 덱이 됨 ----
+
+function reshuffleIfNeeded(state) {
+  if (state.deck.length > 0 || state.discardPile.length === 0) return state;
+  return { ...state, deck: shuffle([...state.discardPile]), discardPile: [] };
+}
+
+function drawCardsForPlayer(state, playerId, count) {
+  let s = reshuffleIfNeeded(state);
+  const drawCount = Math.min(count, s.deck.length);
+  if (drawCount === 0) return s;
+  const drawn = s.deck.slice(0, drawCount);
+  return {
+    ...s,
+    deck: s.deck.slice(drawCount),
+    players: {
+      ...s.players,
+      [playerId]: { ...s.players[playerId], hand: [...s.players[playerId].hand, ...drawn] }
+    }
+  };
+}
+
+// ---- 카드 플레이 ----
 
 function applyPlayCard(state, action) {
   const { playerId, cardId, targetPlayerId, targetHamsterId } = action;
@@ -71,9 +97,7 @@ function applyEffectsToAll(state, card, playerId) {
       const meetsConditions = card.targetConditions.every(
         c => getNestedField(hamster, c.field) === c.value
       );
-      const isBlocked = card.blockedBy.some(
-        att => hamster.attachments[att] === true
-      );
+      const isBlocked = card.blockedBy.some(att => hamster.attachments[att] === true);
       if (meetsConditions && !isBlocked) {
         s = applyEffectsToHamster(s, card.effects, pid, hamster.id, playerId);
       }
@@ -86,9 +110,7 @@ function applyEffectsToHamster(state, effects, targetPlayerId, targetHamsterId, 
   let s = state;
   for (const effect of effects) {
     const handler = effectHandlers[effect.type];
-    if (handler) {
-      s = handler(s, effect, { targetPlayerId, targetHamsterId, actingPlayerId });
-    }
+    if (handler) s = handler(s, effect, { targetPlayerId, targetHamsterId, actingPlayerId });
   }
   return s;
 }
@@ -97,9 +119,7 @@ function applyMetaEffects(state, effects, actingPlayerId) {
   let s = state;
   for (const effect of effects) {
     const handler = effectHandlers[effect.type];
-    if (handler) {
-      s = handler(s, effect, { actingPlayerId });
-    }
+    if (handler) s = handler(s, effect, { actingPlayerId });
   }
   return s;
 }
@@ -118,7 +138,7 @@ const effectHandlers = {
       attachments: { ...h.attachments, [effect.field]: effect.value }
     }));
 
-    // 방음 케이스가 제거되면 그 위의 모든 어태치먼트도 제거
+    // 방음 케이스 제거 시 그 위 모든 어태치먼트도 제거
     if (effect.field === 'soundproofCase' && effect.value === false) {
       s = updateHamster(s, ctx.targetPlayerId, ctx.targetHamsterId, h => ({
         ...h,
@@ -126,13 +146,12 @@ const effectHandlers = {
       }));
     }
 
-    // 햄스터가 깨어나면 배낭도 제거 (배낭은 잠든 햄스터에만 유지)
+    // 햄스터 기상 시 배낭 제거
     if (effect.field === 'sleeping' && effect.value === false) {
       s = updateHamster(s, ctx.targetPlayerId, ctx.targetHamsterId, h => {
         if (!h.attachments.backpack) return h;
         return { ...h, attachments: { ...h.attachments, backpack: false } };
       });
-      // maxHandSize도 되돌림 - 배낭이 있었던 경우만
       const hamster = getHamster(state, ctx.targetPlayerId, ctx.targetHamsterId);
       if (hamster?.attachments.backpack) {
         s = {
@@ -157,71 +176,91 @@ const effectHandlers = {
       ...state,
       players: {
         ...state.players,
-        [ctx.actingPlayerId]: {
-          ...player,
-          [effect.stat]: player[effect.stat] + effect.delta
-        }
+        [ctx.actingPlayerId]: { ...player, [effect.stat]: player[effect.stat] + effect.delta }
       }
     };
   },
 
-  extraTurn(state, _effect, ctx) {
-    return { ...state, extraTurnActive: true, extraTurnPlayer: ctx.actingPlayerId };
-  }
-};
-
-function applyEndTurn(state, action) {
-  const { playerId } = action;
-
-  // extraTurn 중이면 무시
-  if (state.extraTurnActive && state.extraTurnPlayer === playerId) {
-    return { ...state, extraTurnActive: false, extraTurnPlayer: null };
-  }
-
-  const order = state.playerOrder;
-  const idx = order.indexOf(playerId);
-  const nextPlayer = order[(idx + 1) % order.length];
-
-  let s = state;
-
-  // 턴 종료 시 손패를 maxHandSize까지 보충
-  const player = s.players[playerId];
-  const needed = player.maxHandSize - player.hand.length;
-  if (needed > 0 && s.deck.length > 0) {
-    const drawn = s.deck.slice(0, Math.min(needed, s.deck.length));
-    s = {
-      ...s,
-      deck: s.deck.slice(drawn.length),
+  // 행운의 새: 다른 행운의 새 카드들은 즉시 버리고 luckyBirdActive 상태로 진입
+  luckyBird(state, _effect, ctx) {
+    const { actingPlayerId } = ctx;
+    const player = state.players[actingPlayerId];
+    const extraLuckyBirds = player.hand.filter(c => c === 'luckyBird');
+    const remainingHand = player.hand.filter(c => c !== 'luckyBird');
+    return {
+      ...state,
+      luckyBirdActive: true,
+      luckyBirdPlayer: actingPlayerId,
+      discardPile: [...state.discardPile, ...extraLuckyBirds],
       players: {
-        ...s.players,
-        [playerId]: {
-          ...s.players[playerId],
-          hand: [...s.players[playerId].hand, ...drawn]
-        }
+        ...state.players,
+        [actingPlayerId]: { ...player, hand: remainingHand }
       }
     };
   }
+};
+
+// ---- 턴 종료: 카드 사용/버리기 후 자동 호출 ----
+
+function applyEndTurn(state, action) {
+  const { playerId } = action;
+  const order = state.playerOrder;
+  const nextPlayer = order[(order.indexOf(playerId) + 1) % order.length];
+
+  // 턴 종료 시 maxHandSize까지 보충 (덱 소진 시 버린 패 셔플)
+  const needed = state.players[playerId].maxHandSize - state.players[playerId].hand.length;
+  const s = needed > 0 ? drawCardsForPlayer(state, playerId, needed) : state;
 
   return { ...s, currentPlayer: nextPlayer };
 }
 
-function applyDrawCard(state, action) {
-  const { playerId } = action;
-  if (state.deck.length === 0) return state;
+// ---- 1장 버리기 ----
 
-  const [card, ...rest] = state.deck;
+function applyDiscardCard(state, action) {
+  const { playerId, cardId } = action;
+  const hand = state.players[playerId].hand;
+  const idx = hand.indexOf(cardId);
+  if (idx === -1) return state;
+  const newHand = [...hand.slice(0, idx), ...hand.slice(idx + 1)];
   return {
     ...state,
-    deck: rest,
-    players: {
-      ...state.players,
-      [playerId]: {
-        ...state.players[playerId],
-        hand: [...state.players[playerId].hand, card]
-      }
-    }
+    discardPile: [...state.discardPile, cardId],
+    players: { ...state.players, [playerId]: { ...state.players[playerId], hand: newHand } }
   };
 }
+
+// ---- 전부 버리고 3장 뽑기 ----
+
+function applyDiscardAllDraw(state, action) {
+  const { playerId } = action;
+  const player = state.players[playerId];
+
+  let s = {
+    ...state,
+    discardPile: [...state.discardPile, ...player.hand],
+    players: { ...state.players, [playerId]: { ...player, hand: [] } }
+  };
+
+  // 덱 소진 시 버린 패 셔플 후 3장 뽑기
+  s = drawCardsForPlayer(s, playerId, DEFAULT_HAND_SIZE);
+
+  const order = s.playerOrder;
+  const nextPlayer = order[(order.indexOf(playerId) + 1) % order.length];
+  return { ...s, currentPlayer: nextPlayer };
+}
+
+// ---- 행운의 새 종료: 3장 뽑고 턴 이동 ----
+
+function applyLuckyBirdEnd(state, action) {
+  const { playerId } = action;
+  let s = { ...state, luckyBirdActive: false, luckyBirdPlayer: null };
+  s = drawCardsForPlayer(s, playerId, DEFAULT_HAND_SIZE);
+  const order = s.playerOrder;
+  const nextPlayer = order[(order.indexOf(playerId) + 1) % order.length];
+  return { ...s, currentPlayer: nextPlayer };
+}
+
+// ---- 유틸리티 ----
 
 function removeCardFromHand(state, playerId, cardId) {
   const hand = state.players[playerId].hand;
@@ -230,10 +269,7 @@ function removeCardFromHand(state, playerId, cardId) {
   const newHand = [...hand.slice(0, idx), ...hand.slice(idx + 1)];
   return {
     ...state,
-    players: {
-      ...state.players,
-      [playerId]: { ...state.players[playerId], hand: newHand }
-    }
+    players: { ...state.players, [playerId]: { ...state.players[playerId], hand: newHand } }
   };
 }
 
@@ -254,32 +290,6 @@ function updateHamster(state, playerId, hamsterId, updater) {
 
 function getHamster(state, playerId, hamsterId) {
   return state.players[playerId]?.hamsters.find(h => h.id === hamsterId);
-}
-
-function applyDiscardAllDraw(state, action) {
-  const { playerId } = action;
-  const player = state.players[playerId];
-
-  // 전체 버리기
-  let s = {
-    ...state,
-    discardPile: [...state.discardPile, ...player.hand],
-    players: { ...state.players, [playerId]: { ...player, hand: [] } }
-  };
-
-  // maxHandSize만큼 다시 뽑기
-  const drawCount = Math.min(player.maxHandSize, s.deck.length);
-  const drawn = s.deck.slice(0, drawCount);
-  s = {
-    ...s,
-    deck: s.deck.slice(drawCount),
-    players: { ...s.players, [playerId]: { ...s.players[playerId], hand: drawn } }
-  };
-
-  // 다음 플레이어로 턴 이동 (추가 패 보충 없이)
-  const order = s.playerOrder;
-  const nextPlayer = order[(order.indexOf(playerId) + 1) % order.length];
-  return { ...s, currentPlayer: nextPlayer };
 }
 
 function checkWin(state) {
