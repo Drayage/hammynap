@@ -19,7 +19,7 @@ const CARDS = {
   blanketAway: {
     id: 'blanketAway',
     nameKo: '이불 치우기',
-    emoji: '💤',
+    emoji: '✋',
     expansionOnly: false,
     deckCount: 8,
     targetType: 'hamster',
@@ -88,8 +88,8 @@ const CARDS = {
 
   cat: {
     id: 'cat',
-    nameKo: '고양이',
-    emoji: '🐱',
+    nameKo: '망치',
+    emoji: '🔨',
     expansionOnly: false,
     deckCount: 4,
     targetType: 'hamster',
@@ -106,8 +106,8 @@ const CARDS = {
 
   waterBottle: {
     id: 'waterBottle',
-    nameKo: '물병',
-    emoji: '💧',
+    nameKo: '케이스 강화',
+    emoji: '🧱',
     expansionOnly: false,
     deckCount: 4,
     targetType: 'hamster',
