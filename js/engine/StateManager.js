@@ -36,10 +36,11 @@ function createInitialState(config) {
 
 function applyAction(state, action) {
   switch (action.type) {
-    case 'PLAY_CARD':    return applyPlayCard(state, action);
-    case 'END_TURN':     return applyEndTurn(state, action);
-    case 'DRAW_CARD':    return applyDrawCard(state, action);
-    default:             return state;
+    case 'PLAY_CARD':        return applyPlayCard(state, action);
+    case 'END_TURN':         return applyEndTurn(state, action);
+    case 'DRAW_CARD':        return applyDrawCard(state, action);
+    case 'DISCARD_ALL_DRAW': return applyDiscardAllDraw(state, action);
+    default:                 return state;
   }
 }
 
@@ -253,6 +254,32 @@ function updateHamster(state, playerId, hamsterId, updater) {
 
 function getHamster(state, playerId, hamsterId) {
   return state.players[playerId]?.hamsters.find(h => h.id === hamsterId);
+}
+
+function applyDiscardAllDraw(state, action) {
+  const { playerId } = action;
+  const player = state.players[playerId];
+
+  // 전체 버리기
+  let s = {
+    ...state,
+    discardPile: [...state.discardPile, ...player.hand],
+    players: { ...state.players, [playerId]: { ...player, hand: [] } }
+  };
+
+  // maxHandSize만큼 다시 뽑기
+  const drawCount = Math.min(player.maxHandSize, s.deck.length);
+  const drawn = s.deck.slice(0, drawCount);
+  s = {
+    ...s,
+    deck: s.deck.slice(drawCount),
+    players: { ...s.players, [playerId]: { ...s.players[playerId], hand: drawn } }
+  };
+
+  // 다음 플레이어로 턴 이동 (추가 패 보충 없이)
+  const order = s.playerOrder;
+  const nextPlayer = order[(order.indexOf(playerId) + 1) % order.length];
+  return { ...s, currentPlayer: nextPlayer };
 }
 
 function checkWin(state) {

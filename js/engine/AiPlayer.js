@@ -33,6 +33,10 @@ class AiPlayer {
 
     if (move) {
       this._engine.playCard(this._id, move.cardId, move.targetPlayerId, move.targetHamsterId);
+    } else if (canDiscardAllDraw(state, this._id)) {
+      // 사용 가능한 카드 없음 → 전부 버리고 다시 뽑기 (턴 자동 종료)
+      this._engine.discardAllAndDraw(this._id);
+      return;
     }
 
     // 카드 낸 뒤 짧은 딜레이 후 턴 종료

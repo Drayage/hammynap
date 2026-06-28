@@ -71,6 +71,23 @@ class GameEngine {
     return { ok: true };
   }
 
+  discardAllAndDraw(playerId) {
+    if (!this._state) return { ok: false, reason: '게임이 시작되지 않았습니다.' };
+    if (this._state.phase !== 'playing') return { ok: false, reason: '게임이 진행 중이 아닙니다.' };
+    if (this._state.currentPlayer !== playerId) return { ok: false, reason: '지금 당신의 턴이 아닙니다.' };
+    if (!canDiscardAllDraw(this._state, playerId)) {
+      this.emit('invalidAction', { reason: '사용 가능한 카드가 있을 때는 전부 버리기를 할 수 없습니다.' });
+      return { ok: false, reason: '사용 가능한 카드가 있습니다.' };
+    }
+
+    const action = { type: 'DISCARD_ALL_DRAW', playerId };
+    const prev = this._state;
+    this._state = applyAction(this._state, action);
+    this.emit('stateChanged', { prev, next: this._state, action });
+    this.emit('turnStart', { playerId: this._state.currentPlayer });
+    return { ok: true };
+  }
+
   // 원격 액션 적용 (AI 또는 Firebase 동기화용)
   applyRemoteAction(action) {
     if (!this._state) return;

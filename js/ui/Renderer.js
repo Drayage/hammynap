@@ -105,6 +105,19 @@ class Renderer {
       this._handEl.appendChild(el);
     }
 
+    // 사용 가능한 카드 없을 때: 전부 버리고 다시 뽑기 버튼
+    const isMyTurn = state.currentPlayer === this._myPlayerId;
+    if (isMyTurn && canDiscardAllDraw(state, this._myPlayerId)) {
+      const discardBtn = document.createElement('button');
+      discardBtn.className = 'btn btn--discard-all';
+      discardBtn.textContent = '전부 버리기';
+      discardBtn.title = '사용 가능한 카드가 없을 때 3장을 모두 버리고 새로 뽑습니다 (턴 종료)';
+      discardBtn.addEventListener('click', () => {
+        this._engine.discardAllAndDraw(this._myPlayerId);
+      });
+      this._handEl.appendChild(discardBtn);
+    }
+
     // 턴 종료 버튼
     const endBtn = document.createElement('button');
     endBtn.className = 'btn btn--end-turn';

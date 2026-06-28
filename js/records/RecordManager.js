@@ -38,7 +38,7 @@ class RecordManager {
 
   _recordAction(prev, next, action) {
     if (!this._currentRecord) return;
-    if (action.type !== 'PLAY_CARD' && action.type !== 'END_TURN') return;
+    if (action.type !== 'PLAY_CARD' && action.type !== 'END_TURN' && action.type !== 'DISCARD_ALL_DRAW') return;
 
     this._turnCount++;
     this._currentRecord.turns.push({

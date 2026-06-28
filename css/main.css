@@ -280,8 +280,8 @@ html, body {
 
 .hamster-row {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
 /* ---- 손패 ---- */

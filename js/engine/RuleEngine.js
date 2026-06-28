@@ -99,5 +99,23 @@ function checkTargetOwner(targetOwner, playerId, targetPlayerId) {
   return ok();
 }
 
+function canDiscardAllDraw(state, playerId) {
+  if (state.currentPlayer !== playerId) return false;
+  const player = state.players[playerId];
+  if (!player || player.hand.length === 0) return false;
+
+  for (const cardId of player.hand) {
+    const card = CARDS[cardId];
+    if (!card) continue;
+    if (card.targetType === 'none') return false;
+    if (card.targetType === 'all') {
+      if (countAffected(state, card, playerId) > 0) return false;
+    } else {
+      if (getValidTargets(state, playerId, cardId).length > 0) return false;
+    }
+  }
+  return true;
+}
+
 function ok() { return { valid: true, reason: null }; }
 function fail(reason) { return { valid: false, reason }; }
