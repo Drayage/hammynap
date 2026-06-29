@@ -260,11 +260,15 @@ class FirebaseSync {
     if (!action || !this._engine) return;
     const { type, playerId, cardId, targetPlayerId, targetHamsterId } = action;
     let result;
-    switch (type) {
-      case 'PLAY_CARD':        result = this._engine.playCard(playerId, cardId, targetPlayerId, targetHamsterId); break;
-      case 'DISCARD_CARD':     result = this._engine.discardCard(playerId, cardId);    break;
-      case 'DISCARD_ALL_DRAW': result = this._engine.discardAllAndDraw(playerId);      break;
-      case 'SURRENDER':        result = this._engine.surrender(playerId);              break;
+    try {
+      switch (type) {
+        case 'PLAY_CARD':        result = this._engine.playCard(playerId, cardId, targetPlayerId, targetHamsterId); break;
+        case 'DISCARD_CARD':     result = this._engine.discardCard(playerId, cardId);    break;
+        case 'DISCARD_ALL_DRAW': result = this._engine.discardAllAndDraw(playerId);      break;
+        case 'SURRENDER':        result = this._engine.surrender(playerId);              break;
+      }
+    } catch (e) {
+      result = { ok: false };
     }
     // 거부된 액션: 현재 상태를 Firebase에 강제 push → 게스트 낙관적 업데이트 롤백
     if (result && !result.ok && this._roomId) {
@@ -278,20 +282,20 @@ class FirebaseSync {
     // Firebase는 null/undefined 필드를 제거함 → 기본값 복원
     const sanitized = {
       ...state,
-      deck:            Array.isArray(state.deck)        ? state.deck        : [],
-      discardPile:     Array.isArray(state.discardPile) ? state.discardPile : [],
+      deck:            Array.isArray(state.deck)        ? state.deck        : (state.deck        ? Object.values(state.deck)        : []),
+      discardPile:     Array.isArray(state.discardPile) ? state.discardPile : (state.discardPile ? Object.values(state.discardPile) : []),
       winner:          state.winner          ?? null,
       luckyBirdPlayer: state.luckyBirdPlayer ?? null,
       luckyBirdActive: state.luckyBirdActive ?? false,
     };
     // playerOrder 복원
     if (!Array.isArray(sanitized.playerOrder)) {
-      sanitized.playerOrder = Object.keys(sanitized.players ?? {});
+      sanitized.playerOrder = sanitized.playerOrder ? Object.values(sanitized.playerOrder) : Object.keys(sanitized.players ?? {});
     }
     // 각 플레이어 hand/hamsters 배열 복원
     for (const player of Object.values(sanitized.players ?? {})) {
-      if (!Array.isArray(player.hand))     player.hand     = [];
-      if (!Array.isArray(player.hamsters)) player.hamsters = [];
+      if (!Array.isArray(player.hand))     player.hand     = player.hand     ? Object.values(player.hand)     : [];
+      if (!Array.isArray(player.hamsters)) player.hamsters = player.hamsters ? Object.values(player.hamsters) : [];
     }
 
     const prev     = this._engine._state;

@@ -302,6 +302,14 @@ async function joinOnlineGame() {
     }
   });
 
+  // 호스트가 다음 라운드 시작 시 (prev === null) 오버레이 해제
+  engine.on('stateChanged', ({ prev, next }) => {
+    if (prev === null && next?.phase === 'playing') {
+      document.getElementById('round-over-overlay').style.display = 'none';
+      document.getElementById('game-over-overlay').style.display  = 'none';
+    }
+  });
+
   _wrapEngineForGuest(engine, sync);
   _attachSoundHooks(engine);
 
@@ -742,6 +750,31 @@ function showPassScreen(playerName, playerId) {
   }, { once: true });
 }
 
+// ---- Firebase 상태 정규화 (배열 필드 Object.values 복원) ----
+
+function _sanitizeFirebaseState(state) {
+  if (!state) return state;
+  const s = {
+    ...state,
+    deck:            Array.isArray(state.deck)        ? state.deck        : (state.deck        ? Object.values(state.deck)        : []),
+    discardPile:     Array.isArray(state.discardPile) ? state.discardPile : (state.discardPile ? Object.values(state.discardPile) : []),
+    winner:          state.winner          ?? null,
+    luckyBirdPlayer: state.luckyBirdPlayer ?? null,
+    luckyBirdActive: state.luckyBirdActive ?? false,
+  };
+  if (!Array.isArray(s.playerOrder)) {
+    s.playerOrder = s.playerOrder ? Object.values(s.playerOrder) : Object.keys(s.players ?? {});
+  }
+  s.players = { ...s.players };
+  for (const [id, player] of Object.entries(s.players ?? {})) {
+    const p = { ...player };
+    if (!Array.isArray(p.hand))     p.hand     = p.hand     ? Object.values(p.hand)     : [];
+    if (!Array.isArray(p.hamsters)) p.hamsters = p.hamsters ? Object.values(p.hamsters) : [];
+    s.players[id] = p;
+  }
+  return s;
+}
+
 // ---- 세션 저장/복원 ----
 
 function _saveOnlineHostSession(roomCode, config) {
@@ -958,7 +991,8 @@ async function restoreOnlineHostSession(session) {
     return;
   }
 
-  // Firebase 상태 주입
+  // Firebase 상태 주입 (배열 필드 정규화 후 주입)
+  savedState = _sanitizeFirebaseState(savedState);
   engine._state = savedState;
   engine.emit('stateChanged', { prev: null, next: savedState, action: null });
 
