@@ -226,6 +226,9 @@ async function createOnlineRoom() {
       document.getElementById('online-waiting').style.display = 'none';
       document.getElementById('online-buttons').style.display = '';
 
+      // 게임이 이미 진행 중이면 게스트 재접속이므로 startGame 호출하지 않음
+      if (engine.getState()) return;
+
       _attachSoundHooks(engine);
       engine.startGame(_config);
       sound.startBgm();
@@ -480,6 +483,28 @@ function setupGameButtons() {
     if (!confirm('정말 항복하시겠습니까?')) return;
     engine.surrender(myPlayerId);
   });
+
+  // 결과 보기 버튼 동적 삽입 (game-over-overlay에 btn-back-to-lobby 앞에 추가)
+  const gameOverBox = document.querySelector('.game-over-box');
+  const backBtn     = document.getElementById('btn-back-to-lobby');
+  if (gameOverBox && backBtn) {
+    const btnViewResult = document.createElement('button');
+    btnViewResult.id        = 'btn-view-result';
+    btnViewResult.className = 'btn btn--primary';
+    btnViewResult.textContent = '결과 보기';
+    gameOverBox.insertBefore(btnViewResult, backBtn);
+    btnViewResult.addEventListener('click', () => {
+      sound.stopBgm();
+      sync?.disconnect();
+      sync = null;
+      _clearSession();
+      document.getElementById('game-over-overlay').style.display = 'none';
+      showView('view-lobby');
+      recordViewer?.open();
+    });
+    backBtn.className = 'btn btn--text';
+    backBtn.textContent = '그냥 로비로';
+  }
 
   document.getElementById('btn-back-to-lobby')?.addEventListener('click', () => {
     sound.stopBgm();
@@ -805,6 +830,15 @@ async function restoreSession(session) {
     document.getElementById('online-join-panel').style.display = '';
     document.getElementById('online-buttons').style.display    = 'none';
     await joinOnlineGame();
+    // joinOnlineGame은 성공 시 패널을 숨기고 view-game으로 이동
+    // 패널이 아직 보이면 접속 실패 → UI 정리
+    const joinPanel = document.getElementById('online-join-panel');
+    if (joinPanel && joinPanel.style.display !== 'none') {
+      joinPanel.style.display = 'none';
+      document.getElementById('join-error').style.display = 'none';
+      document.getElementById('online-buttons').style.display = '';
+      _clearSession();
+    }
   } else if (session.type === 'online-host') {
     await restoreOnlineHostSession(session);
   }

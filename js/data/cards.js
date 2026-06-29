@@ -40,7 +40,7 @@ const CARDS = {
   bigNoise: {
     id: 'bigNoise',
     nameKo: '큰 소음',
-    descKo: '수면캡슐·리본이 없는 모든 잠든 햄스터를 깨웁니다.',
+    descKo: '수면캡슐이 없는 모든 잠든 햄스터를 깨웁니다.',
     emoji: '📢',
     expansionOnly: false,
     deckCount: 4,
@@ -49,7 +49,7 @@ const CARDS = {
     targetConditions: [
       { field: 'sleeping', value: true }
     ],
-    blockedBy: ['soundproofCase', 'ribbon'],
+    blockedBy: ['soundproofCase'],
     effects: [
       { type: 'setField', field: 'sleeping', value: false }
     ]
