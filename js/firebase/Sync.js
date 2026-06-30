@@ -77,11 +77,7 @@ class FirebaseSync {
     const actionRef = roomRef.child('pendingAction');
     const actionHandler = actionRef.on('value', snap => {
       const action = snap.val();
-      console.log('[HOST] pendingAction fired:', action ? `${action.type}/${action.cardId} ts=${action.timestamp}` : 'null', '| lastTs:', this._lastActionTs);
-      if (!action || action.timestamp <= this._lastActionTs) {
-        if (action) console.log('[HOST] pendingAction SKIPPED (ts check)');
-        return;
-      }
+      if (!action || action.timestamp <= this._lastActionTs) return;
       this._lastActionTs = action.timestamp;
       actionRef.remove();
       this._applyGuestAction(action);
@@ -105,7 +101,6 @@ class FirebaseSync {
     this._engine = engine;
     this._hostEngineOff = engine.on('stateChanged', ({ next, action }) => {
       if (!this._isHost || !next || !this._roomId) return;
-      console.log('[HOST] Firebase write triggered:', action?.type, action?.cardId, '| currentPlayer:', next?.currentPlayer);
       const cleanAction = action ? {
         type:            action.type            || null,
         playerId:        action.playerId        || null,
@@ -188,11 +183,7 @@ class FirebaseSync {
       // state가 없거나 변경이 없으면 스킵
       if (!data?.state) return;
       const stateJson = JSON.stringify(data.state);
-      if (stateJson === _prevStateJson) {
-        console.log('[GUEST] onValue: state unchanged (dedup skip) | lastAction:', data?.lastAction?.type, data?.lastAction?.cardId);
-        return;
-      }
-      console.log('[GUEST] onValue: new state applying | lastAction:', data?.lastAction?.type, data?.lastAction?.cardId, '| firstState:', _firstState);
+      if (stateJson === _prevStateJson) return;
       _prevStateJson = stateJson;
 
       // 첫 번째 수신: lastAction은 이전 게임 잔여일 수 있어 무시
@@ -220,11 +211,7 @@ class FirebaseSync {
     const actionRef = this._db.ref(`games/${this._roomId}/pendingAction`);
     const actionHandler = actionRef.on('value', snap => {
       const action = snap.val();
-      console.log('[HOST-rejoin] pendingAction fired:', action ? `${action.type}/${action.cardId} ts=${action.timestamp}` : 'null', '| lastTs:', this._lastActionTs);
-      if (!action || action.timestamp <= this._lastActionTs) {
-        if (action) console.log('[HOST-rejoin] pendingAction SKIPPED (ts check)');
-        return;
-      }
+      if (!action || action.timestamp <= this._lastActionTs) return;
       this._lastActionTs = action.timestamp;
       actionRef.remove();
       this._applyGuestAction(action);
@@ -240,9 +227,14 @@ class FirebaseSync {
   // ---- 게스트 액션 전송 ----------------------------------------
   sendAction(action) {
     if (this._isHost || !this._roomId) return;
+    // Firebase set() rejects undefined — explicitly coerce to null
     this._db.ref(`games/${this._roomId}/pendingAction`).set({
-      ...action,
-      timestamp: Date.now()
+      type:            action.type            ?? null,
+      playerId:        action.playerId        ?? null,
+      cardId:          action.cardId          ?? null,
+      targetPlayerId:  action.targetPlayerId  ?? null,
+      targetHamsterId: action.targetHamsterId ?? null,
+      timestamp:       Date.now()
     });
   }
 
@@ -272,16 +264,6 @@ class FirebaseSync {
   _applyGuestAction(action) {
     if (!action || !this._engine) return;
     const { type, playerId, cardId, targetPlayerId, targetHamsterId } = action;
-    console.log('[HOST] _applyGuestAction:', type, cardId, '| engine state phase:', this._engine.getState()?.phase, '| currentPlayer:', this._engine.getState()?.currentPlayer);
-    if (cardId === 'bigNoise') {
-      const s = this._engine.getState();
-      if (s) {
-        for (const [pid, pl] of Object.entries(s.players || {})) {
-          const sleepable = (pl.hamsters || []).filter(h => h.sleeping && !h.attachments?.soundproofCase);
-          console.log(`[HOST] bigNoise state check - ${pid}: ${sleepable.length} wakeable hamsters, hand has bigNoise: ${pl.hand?.includes('bigNoise')}`);
-        }
-      }
-    }
     let result;
     try {
       switch (type) {
@@ -291,10 +273,8 @@ class FirebaseSync {
         case 'SURRENDER':        result = this._engine.surrender(playerId);              break;
       }
     } catch (e) {
-      console.error('[HOST] _applyGuestAction EXCEPTION:', e);
       result = { ok: false };
     }
-    console.log('[HOST] _applyGuestAction result:', JSON.stringify(result));
     // 거부된 액션: 현재 상태를 Firebase에 강제 push → 게스트 낙관적 업데이트 롤백
     if (result && !result.ok && this._roomId) {
       const currentState = this._engine.getState();
