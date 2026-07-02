@@ -1,6 +1,6 @@
 // All dependencies loaded as globals via ordered <script> tags in index.html
 
-const VIEWS = ['view-lobby', 'view-game', 'view-pass-screen'];
+const VIEWS = ['view-lobby', 'view-game', 'view-pass-screen', 'view-tournament-result'];
 const SESSION_KEY     = 'hammynap_session';
 const SESSION_MAX_MS  = 30 * 60 * 1000;  // 30분
 
@@ -172,6 +172,7 @@ async function createOnlineRoom() {
       const finalState = engine.getState();
       const result     = tournament.recordWin(winner, finalState);
       renderTournamentInfo();
+      sync?.pushTournamentState();
       if (result.over) {
         sound.playWin();
         showTournamentEndOverlay(tournament.getTournamentWinners());
@@ -280,6 +281,8 @@ async function joinOnlineGame() {
   sync.onTournamentUpdate(ts => {
     _remoteTournamentState = ts;
     renderTournamentInfo();
+    _refreshGuestOverlayScores();
+    if (ts?.resultsShown) _showGuestTournamentResult(ts);
   });
 
   try {
@@ -530,7 +533,18 @@ function setupGameButtons() {
 
   document.getElementById('btn-end-tournament')?.addEventListener('click', () => {
     document.getElementById('round-over-overlay').style.display = 'none';
+    const finalState = engine?.getState();
+    const ts         = tournament?.getState();
+    const winners    = tournament?.getTournamentWinners() ?? [];
+    tournament?.markResultsShown();
+    if (_gameMode === 'online') sync?.pushTournamentState();
+    showTournamentResultPage(finalState, ts, winners);
+  });
+
+  document.getElementById('btn-result-to-lobby')?.addEventListener('click', () => {
     sound.stopBgm();
+    sync?.disconnect();
+    sync = null;
     _clearSession();
     showView('view-lobby');
   });
@@ -596,6 +610,7 @@ function startRound() {
       const finalState = engine.getState();
       const result     = tournament.recordWin(winner, finalState);
       renderTournamentInfo();
+      if (_gameMode === 'online') sync?.pushTournamentState();
       if (result.over) {
         sound.playWin();
         showTournamentEndOverlay(tournament.getTournamentWinners());
@@ -734,6 +749,52 @@ function _buildScoresHTML(ts) {
     }
     return `<div>${p.name}: ${ts.wins?.[p.id] || 0}승</div>`;
   }).join('');
+}
+
+// ---- 토너먼트 최종 결과 페이지 ----
+function showTournamentResultPage(finalState, ts, winnerIds) {
+  const listEl = document.getElementById('result-page-list');
+  if (!listEl) return;
+
+  const order = (_config?.playerSetup ?? []).map(p => p.id);
+  listEl.innerHTML = order.map(pid => {
+    const player = finalState?.players?.[pid];
+    const name   = player?.name ?? _config.playerSetup.find(p => p.id === pid)?.name ?? pid;
+    if (!player) return '';
+
+    const isWinner  = winnerIds.includes(pid);
+    const scoreText = ts?.isExpansion
+      ? `${ts.scores?.[pid] || 0}점 ${(ts.items?.[pid] || []).map(i => i.type === 'medal' ? `🏅${i.value}` : `🛌${i.value}`).join(' ')}`
+      : `${ts?.wins?.[pid] || 0}승`;
+    const hamstersHtml = (player.hamsters || []).map(h => `<div class="hamster result-hamster">${buildHamsterHTML(h)}</div>`).join('');
+
+    return `
+      <div class="result-page__player ${isWinner ? 'result-page__player--winner' : ''}">
+        ${isWinner ? '<div class="result-page__trophy">🏆</div>' : ''}
+        <div class="result-page__name">${name}</div>
+        <div class="result-page__score">${scoreText}</div>
+        <div class="result-page__hamsters">${hamstersHtml}</div>
+      </div>`;
+  }).join('');
+
+  showView('view-tournament-result');
+}
+
+// 게스트: 스코어가 뒤늦게 도착해도 이미 열려있는 라운드 오버레이를 갱신
+function _refreshGuestOverlayScores() {
+  const overlay = document.getElementById('round-over-overlay');
+  if (!overlay || overlay.style.display === 'none') return;
+  const scoresEl = overlay.querySelector('.round-over__scores');
+  if (scoresEl) scoresEl.innerHTML = _buildRemoteTournamentScores(_remoteTournamentState);
+}
+
+// 게스트: 호스트가 "결과 확인"을 눌러 결과 페이지로 넘어가면 함께 이동
+function _showGuestTournamentResult(ts) {
+  const resultView = document.getElementById('view-tournament-result');
+  if (!resultView || resultView.style.display !== 'none') return;
+  document.getElementById('round-over-overlay').style.display = 'none';
+  const winners = computeTournamentWinners(ts);
+  showTournamentResultPage(engine?.getState(), ts, winners);
 }
 
 function showPassScreen(playerName, playerId) {
@@ -962,6 +1023,7 @@ async function restoreOnlineHostSession(session) {
       const finalState = engine.getState();
       const result     = tournament.recordWin(winner, finalState);
       renderTournamentInfo();
+      sync?.pushTournamentState();
       if (result.over) {
         sound.playWin();
         showTournamentEndOverlay(tournament.getTournamentWinners());
@@ -1012,8 +1074,10 @@ async function restoreOnlineHostSession(session) {
 }
 
 function _restoreTournamentManager(ts, playerSetup, isExpansion) {
-  const tm       = new TournamentManager(playerSetup, isExpansion);
+  const tm        = new TournamentManager(playerSetup, isExpansion);
   tm._roundNumber = ts.roundNumber ?? 0;
+  tm._isOver      = ts.isOver ?? false;
+  tm._resultsShown = ts.resultsShown ?? false;
   if (isExpansion) {
     tm._medals  = ts.medals  ?? [];
     tm._pillows = ts.pillows ?? [];

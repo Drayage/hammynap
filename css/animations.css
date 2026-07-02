@@ -91,6 +91,12 @@
   animation: fadeIn 0.3s ease-out;
 }
 
+/* ---- 버리기 확인 대기 펄스 ---- */
+@keyframes discardConfirmPulse {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
 .card {
   animation: fadeIn 0.2s ease-out;
 }

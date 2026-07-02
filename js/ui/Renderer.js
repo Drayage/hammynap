@@ -170,7 +170,7 @@ class Renderer {
       `;
       el.addEventListener('click', () => this._onCardClick(cardId, el));
 
-      // 버리기 버튼 (내 턴일 때만 표시)
+      // 버리기 버튼 (내 턴일 때만 표시, 실수 방지를 위해 한 번 더 눌러야 확정)
       if (canAct) {
         const discardBtn = document.createElement('button');
         discardBtn.className = 'card__discard-btn';
@@ -178,7 +178,19 @@ class Renderer {
         discardBtn.title = '이 카드 버리기';
         discardBtn.addEventListener('click', e => {
           e.stopPropagation();
-          this._engine.discardCard(this._myPlayerId, cardId);
+          if (discardBtn.classList.contains('card__discard-btn--confirm')) {
+            clearTimeout(discardBtn._confirmTimer);
+            this._engine.discardCard(this._myPlayerId, cardId);
+            return;
+          }
+          discardBtn.classList.add('card__discard-btn--confirm');
+          discardBtn.textContent = '확인';
+          discardBtn.title = '다시 눌러 버리기 확정';
+          discardBtn._confirmTimer = setTimeout(() => {
+            discardBtn.classList.remove('card__discard-btn--confirm');
+            discardBtn.textContent = '✕';
+            discardBtn.title = '이 카드 버리기';
+          }, 2500);
         });
         el.appendChild(discardBtn);
       }
@@ -186,14 +198,24 @@ class Renderer {
       this._handEl.appendChild(el);
     }
 
-    // 전부 버리기 버튼 (사용 가능한 카드가 없고 행운의 새 모드가 아닐 때)
+    // 전부 버리기 버튼 (사용 가능한 카드가 없고 행운의 새 모드가 아닐 때, 한 번 더 눌러야 확정)
     if (isMyTurn && !isLuckyBirdPhase && canDiscardAllDraw(state, this._myPlayerId)) {
       const discardAllBtn = document.createElement('button');
       discardAllBtn.className = 'btn btn--discard-all';
       discardAllBtn.textContent = '전부 버리기';
       discardAllBtn.title = '3장 모두 버리고 새로 뽑기 (턴 종료)';
       discardAllBtn.addEventListener('click', () => {
-        this._engine.discardAllAndDraw(this._myPlayerId);
+        if (discardAllBtn.classList.contains('btn--discard-all-confirm')) {
+          clearTimeout(discardAllBtn._confirmTimer);
+          this._engine.discardAllAndDraw(this._myPlayerId);
+          return;
+        }
+        discardAllBtn.classList.add('btn--discard-all-confirm');
+        discardAllBtn.textContent = '정말 버릴까요?';
+        discardAllBtn._confirmTimer = setTimeout(() => {
+          discardAllBtn.classList.remove('btn--discard-all-confirm');
+          discardAllBtn.textContent = '전부 버리기';
+        }, 2500);
       });
       this._handEl.appendChild(discardAllBtn);
     }

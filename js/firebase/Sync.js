@@ -120,6 +120,12 @@ class FirebaseSync {
     this._attachHostEngine(engine);
   }
 
+  // 토너먼트 상태만 즉시 Firebase에 반영 (라운드 승리 직후 등, stateChanged를 기다리지 않고 push)
+  pushTournamentState() {
+    if (!this._isHost || !this._roomId || !this._tournamentMgr) return;
+    this._db.ref(`games/${this._roomId}/tournament`).set(this._tournamentMgr.getState());
+  }
+
   // ---- 방 메타 조회 (게스트 참가 전) ----------------------------
   async fetchRoomMeta(roomId) {
     const snap = await this._db.ref(`games/${roomId}/meta`).get();
