@@ -17,6 +17,31 @@ class Renderer {
     engine.on('stateChanged', ({ prev, next, action }) => this._onStateChanged(prev, next, action));
     engine.on('gameOver',     ({ winner })               => this._onGameOver(winner));
     engine.on('invalidAction',({ reason })               => this._showMessage(reason, 'error'));
+
+    Renderer._installDiscardCancelListener();
+  }
+
+  // 버리기 확인 대기 중인 버튼 바깥을 누르면 즉시 취소 (실수 방지 UX).
+  // capture 단계에서 실행되어, 버튼 자체의 클릭 핸들러가 stopPropagation을
+  // 호출하더라도 "다른 버튼"의 대기 상태는 확실히 해제된다.
+  static _installDiscardCancelListener() {
+    if (Renderer._discardCancelInstalled) return;
+    Renderer._discardCancelInstalled = true;
+    document.addEventListener('click', e => {
+      document.querySelectorAll('.card__discard-btn--confirm').forEach(btn => {
+        if (btn === e.target) return;
+        clearTimeout(btn._confirmTimer);
+        btn.classList.remove('card__discard-btn--confirm');
+        btn.textContent = '✕';
+        btn.title = '이 카드 버리기';
+      });
+      document.querySelectorAll('.btn--discard-all-confirm').forEach(btn => {
+        if (btn === e.target) return;
+        clearTimeout(btn._confirmTimer);
+        btn.classList.remove('btn--discard-all-confirm');
+        btn.textContent = '전부 버리기';
+      });
+    }, true);
   }
 
   setMyPlayer(playerId) {
@@ -81,7 +106,7 @@ class Renderer {
     if (isOpponentAction && !myHandChanged && !turnCameToMe) {
       this._refreshHandPlayability(next);
     } else {
-      this._renderHand(next);
+      this._renderHand(next, prev.players[myId]?.hand, action?.cardId);
       this._clearSelection(next);
       if (this._cardDescEl) this._cardDescEl.textContent = '';
     }
@@ -136,7 +161,23 @@ class Renderer {
     this._updateDeckCount(state);
   }
 
-  _renderHand(state) {
+  // 새로 뽑힌 카드를 찾아 드로우 애니메이션을 붙이기 위한 인덱스 계산.
+  // 카드는 항상 손패 맨 끝에 추가되므로, 이번에 사용/버린 카드 1장을
+  // 이전 손패에서 제거했을 때 새 손패의 앞부분과 일치하면 그 뒤가 새로 뽑힌 카드.
+  // 일치하지 않으면 (전부 버리기 등) 손패 전체를 새로 뽑힌 것으로 간주한다.
+  _diffNewlyDrawnCards(prevHand, nextHand, removedCardId) {
+    const base = [...prevHand];
+    if (removedCardId) {
+      const idx = base.indexOf(removedCardId);
+      if (idx !== -1) base.splice(idx, 1);
+    }
+    const isPrefix = base.length <= nextHand.length && base.every((c, i) => nextHand[i] === c);
+    const drawnCount = isPrefix ? nextHand.length - base.length : nextHand.length;
+    const startIndex = isPrefix ? base.length : 0;
+    return new Set(Array.from({ length: drawnCount }, (_, i) => startIndex + i));
+  }
+
+  _renderHand(state, prevHand = null, removedCardId = null) {
     if (!this._handEl || !this._myPlayerId) return;
     const player = state.players[this._myPlayerId];
     if (!player) return;
@@ -146,6 +187,8 @@ class Renderer {
     const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
     const canAct = isRealtime || isMyTurn || isLuckyBirdPhase;
 
+    const drawnIndices = prevHand ? this._diffNewlyDrawnCards(prevHand, player.hand, removedCardId) : new Set();
+
     this._handEl.innerHTML = '';
 
     // 행운의 새 진행 중 안내 메시지
@@ -153,15 +196,18 @@ class Renderer {
       this._showMessage('🐦 행운의 새! 남은 카드를 모두 사용하세요', 'info');
     }
 
-    for (const cardId of player.hand) {
+    player.hand.forEach((cardId, index) => {
       const card = CARDS[cardId];
-      if (!card) continue;
+      if (!card) return;
       const el = document.createElement('div');
       el.className = 'card';
       el.dataset.cardId = cardId;
 
       if (canAct && this._isCardPlayable(state, this._myPlayerId, cardId)) {
         el.classList.add('card--playable');
+      }
+      if (drawnIndices.has(index)) {
+        el.classList.add('card--drawn');
       }
 
       el.innerHTML = `
@@ -184,7 +230,7 @@ class Renderer {
             return;
           }
           discardBtn.classList.add('card__discard-btn--confirm');
-          discardBtn.textContent = '확인';
+          discardBtn.textContent = '버리기';
           discardBtn.title = '다시 눌러 버리기 확정';
           discardBtn._confirmTimer = setTimeout(() => {
             discardBtn.classList.remove('card__discard-btn--confirm');
@@ -196,7 +242,7 @@ class Renderer {
       }
 
       this._handEl.appendChild(el);
-    }
+    });
 
     // 전부 버리기 버튼 (사용 가능한 카드가 없고 행운의 새 모드가 아닐 때, 한 번 더 눌러야 확정)
     if (isMyTurn && !isLuckyBirdPhase && canDiscardAllDraw(state, this._myPlayerId)) {
@@ -204,7 +250,8 @@ class Renderer {
       discardAllBtn.className = 'btn btn--discard-all';
       discardAllBtn.textContent = '전부 버리기';
       discardAllBtn.title = '3장 모두 버리고 새로 뽑기 (턴 종료)';
-      discardAllBtn.addEventListener('click', () => {
+      discardAllBtn.addEventListener('click', e => {
+        e.stopPropagation();
         if (discardAllBtn.classList.contains('btn--discard-all-confirm')) {
           clearTimeout(discardAllBtn._confirmTimer);
           this._engine.discardAllAndDraw(this._myPlayerId);

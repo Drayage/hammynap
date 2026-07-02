@@ -766,7 +766,7 @@ function showTournamentResultPage(finalState, ts, winnerIds) {
     const scoreText = ts?.isExpansion
       ? `${ts.scores?.[pid] || 0}점 ${(ts.items?.[pid] || []).map(i => i.type === 'medal' ? `🏅${i.value}` : `🛌${i.value}`).join(' ')}`
       : `${ts?.wins?.[pid] || 0}승`;
-    const hamstersHtml = (player.hamsters || []).map(h => `<div class="hamster result-hamster">${buildHamsterHTML(h)}</div>`).join('');
+    const hamstersHtml = (player.hamsters || []).map(h => `<div class="hamster result-hamster">${buildResultHamsterHTML(h, isWinner)}</div>`).join('');
 
     return `
       <div class="result-page__player ${isWinner ? 'result-page__player--winner' : ''}">

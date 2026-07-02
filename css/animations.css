@@ -100,3 +100,14 @@
 .card {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* ---- 카드 드로우 (덱에서 손패로 들어오는 느낌) ---- */
+@keyframes cardDrawIn {
+  0%   { transform: translateY(50px) scale(0.6) rotate(-8deg); opacity: 0; }
+  60%  { transform: translateY(-6px) scale(1.05) rotate(2deg); opacity: 1; }
+  100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+}
+
+.card--drawn {
+  animation: cardDrawIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
