@@ -106,7 +106,7 @@ class Renderer {
     if (isOpponentAction && !myHandChanged && !turnCameToMe) {
       this._refreshHandPlayability(next);
     } else {
-      this._renderHand(next, prev.players[myId]?.hand, action?.cardId);
+      this._renderHand(next, prev.players[myId]?.hand);
       this._clearSelection(next);
       if (this._cardDescEl) this._cardDescEl.textContent = '';
     }
@@ -162,22 +162,24 @@ class Renderer {
   }
 
   // 새로 뽑힌 카드를 찾아 드로우 애니메이션을 붙이기 위한 인덱스 계산.
-  // 카드는 항상 손패 맨 끝에 추가되므로, 이번에 사용/버린 카드 1장을
-  // 이전 손패에서 제거했을 때 새 손패의 앞부분과 일치하면 그 뒤가 새로 뽑힌 카드.
-  // 일치하지 않으면 (전부 버리기 등) 손패 전체를 새로 뽑힌 것으로 간주한다.
-  _diffNewlyDrawnCards(prevHand, nextHand, removedCardId) {
-    const base = [...prevHand];
-    if (removedCardId) {
-      const idx = base.indexOf(removedCardId);
-      if (idx !== -1) base.splice(idx, 1);
+  // 카드는 항상 손패 맨 끝에 추가되고, 제거되는 카드는 몇 장이든 순서를
+  // 유지한 채 빠지므로, nextHand의 앞부분이 prevHand의 부분수열로 매칭되는
+  // 가장 긴 길이를 찾으면 그 뒤에 남는 부분이 진짜로 새로 뽑힌 카드다.
+  // (행운의 새처럼 한 액션에서 카드가 2장 이상 빠지는 경우까지 정확히 처리)
+  _diffNewlyDrawnCards(prevHand, nextHand) {
+    let searchFrom = 0;
+    let matchedLen = 0;
+    for (let j = 0; j < nextHand.length; j++) {
+      const foundAt = prevHand.indexOf(nextHand[j], searchFrom);
+      if (foundAt === -1) break;
+      searchFrom = foundAt + 1;
+      matchedLen = j + 1;
     }
-    const isPrefix = base.length <= nextHand.length && base.every((c, i) => nextHand[i] === c);
-    const drawnCount = isPrefix ? nextHand.length - base.length : nextHand.length;
-    const startIndex = isPrefix ? base.length : 0;
-    return new Set(Array.from({ length: drawnCount }, (_, i) => startIndex + i));
+    const drawnCount = nextHand.length - matchedLen;
+    return new Set(Array.from({ length: drawnCount }, (_, i) => matchedLen + i));
   }
 
-  _renderHand(state, prevHand = null, removedCardId = null) {
+  _renderHand(state, prevHand = null) {
     if (!this._handEl || !this._myPlayerId) return;
     const player = state.players[this._myPlayerId];
     if (!player) return;
@@ -187,7 +189,7 @@ class Renderer {
     const isLuckyBirdPhase = state.luckyBirdActive && state.luckyBirdPlayer === this._myPlayerId;
     const canAct = isRealtime || isMyTurn || isLuckyBirdPhase;
 
-    const drawnIndices = prevHand ? this._diffNewlyDrawnCards(prevHand, player.hand, removedCardId) : new Set();
+    const drawnIndices = prevHand ? this._diffNewlyDrawnCards(prevHand, player.hand) : new Set();
 
     this._handEl.innerHTML = '';
 
