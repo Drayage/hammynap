@@ -204,7 +204,7 @@ function resultHappySvg() {
   </svg>`;
 }
 
-// 패자: 살짝 찌푸린 눈썹 + 뜬 눈 + 삐죽 내민 입
+// 패자: 뜬 눈 + 삐죽 내민 입
 function resultPoutySvg() {
   return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" class="hamster-svg">
     <ellipse cx="22" cy="22" rx="12" ry="12" fill="#F4A261"/>
@@ -215,10 +215,8 @@ function resultPoutySvg() {
     <ellipse cx="40" cy="38" rx="24" ry="22" fill="#FDDCB5"/>
     <ellipse cx="20" cy="44" rx="8" ry="6" fill="#F9B8C0" opacity="0.6"/>
     <ellipse cx="60" cy="44" rx="8" ry="6" fill="#F9B8C0" opacity="0.6"/>
-    <path d="M27 31 Q31 28 35 30" stroke="#5C3A1E" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <path d="M45 30 Q49 28 53 31" stroke="#5C3A1E" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <circle cx="31" cy="36" r="3.2" fill="#5C3A1E"/>
-    <circle cx="49" cy="36" r="3.2" fill="#5C3A1E"/>
+    <circle cx="31" cy="36" r="3.5" fill="#5C3A1E"/>
+    <circle cx="49" cy="36" r="3.5" fill="#5C3A1E"/>
     <ellipse cx="40" cy="45" rx="4" ry="3" fill="#E07B7B"/>
     <ellipse cx="40" cy="53" rx="6" ry="4" fill="#E07B7B"/>
   </svg>`;
