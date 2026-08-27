@@ -23,11 +23,13 @@ class FirebaseSync {
     this._engine           = null;
     this._statusCb         = null;
     this._lastActionTs     = 0;
+    this._processedActions = new Set(); // 클럭 스큐 대응: 타임스탬프 대신 키 기반 중복 제거
     this._offCallbacks     = [];
     this._tournamentMgr    = null;
     this._lastRemoteAction = null;
     this._onTournamentCb   = null;
     this._hostEngineOff    = null;
+    this._pendingTournament = false; // tournament push를 stateChanged에 묶기 위한 플래그
   }
 
   setTournamentManager(tm) { this._tournamentMgr = tm; }
@@ -77,9 +79,17 @@ class FirebaseSync {
     const actionRef = roomRef.child('pendingAction');
     const actionHandler = actionRef.on('value', snap => {
       const action = snap.val();
-      if (!action || action.timestamp <= this._lastActionTs) return;
+      if (!action || !action.timestamp) return;
+      // 클럭 스큐 대응: 타임스탬프+타입+카드 조합으로 중복 판별
+      const actionKey = `${action.timestamp}:${action.type}:${action.cardId}:${action.playerId}`;
+      if (this._processedActions.has(actionKey)) return;
+      this._processedActions.add(actionKey);
+      if (this._processedActions.size > 200) {
+        const iter = this._processedActions.values();
+        for (let i = 0; i < 100; i++) this._processedActions.delete(iter.next().value);
+      }
       this._lastActionTs = action.timestamp;
-      actionRef.remove();
+      actionRef.remove().catch(() => {});
       this._applyGuestAction(action);
     });
     this._offCallbacks.push(() => actionRef.off('value', actionHandler));
@@ -109,8 +119,16 @@ class FirebaseSync {
         targetHamsterId: action.targetHamsterId || null,
       } : null;
       const update = { state: next, lastAction: cleanAction };
-      if (this._tournamentMgr) update.tournament = this._tournamentMgr.getState();
-      this._db.ref(`games/${this._roomId}`).update(update);
+      // pushTournamentState()가 대기 중인 경우 함께 묶어서 atomic 업데이트 (경쟁 방지)
+      if (this._pendingTournament && this._tournamentMgr) {
+        update.tournament = this._tournamentMgr.getState();
+        this._pendingTournament = false;
+      } else if (this._tournamentMgr) {
+        update.tournament = this._tournamentMgr.getState();
+      }
+      this._db.ref(`games/${this._roomId}`).update(update).catch(err => {
+        console.error('[Sync] state push failed:', err);
+      });
     });
   }
 
@@ -121,9 +139,19 @@ class FirebaseSync {
   }
 
   // 토너먼트 상태만 즉시 Firebase에 반영 (라운드 승리 직후 등, stateChanged를 기다리지 않고 push)
+  // stateChanged와 동시 쓰기 경쟁을 피하기 위해 _pendingTournament 플래그로 다음 update에 묶음
   pushTournamentState() {
     if (!this._isHost || !this._roomId || !this._tournamentMgr) return;
-    this._db.ref(`games/${this._roomId}/tournament`).set(this._tournamentMgr.getState());
+    this._pendingTournament = true;
+    // stateChanged가 곧 발생하지 않을 경우를 위해 단독 업데이트도 예약 (200ms 후)
+    setTimeout(() => {
+      if (this._pendingTournament && this._roomId && this._tournamentMgr) {
+        this._pendingTournament = false;
+        this._db.ref(`games/${this._roomId}`).update({
+          tournament: this._tournamentMgr.getState()
+        }).catch(err => console.error('[Sync] tournament push failed:', err));
+      }
+    }, 200);
   }
 
   // ---- 방 메타 조회 (게스트 참가 전) ----------------------------
@@ -203,13 +231,20 @@ class FirebaseSync {
 
   // ---- 호스트로 재접속 ----------------------------------------
   async rejoinAsHost(roomId, engine, config) {
-    this._isHost = true;
-    this._roomId = roomId.toUpperCase().trim();
+    const cleanRoomId = roomId.toUpperCase().trim();
 
-    // Firebase에서 현재 상태 가져오기
-    const snap = await this._db.ref(`games/${this._roomId}/state`).get();
-    if (!snap.exists() || !snap.val()) throw new Error('저장된 게임 상태가 없습니다.');
+    // Firebase에서 현재 상태 가져오기 (상태 설정 전에 검증)
+    const snap = await this._db.ref(`games/${cleanRoomId}/state`).get();
+    if (!snap.exists() || !snap.val()) {
+      // 내부 상태는 건드리지 않고 에러 throw (cancelRoom 후 rejoin 크래시 방지)
+      throw new Error('저장된 게임 상태가 없습니다. 방이 만료되었거나 취소되었습니다.');
+    }
     const savedState = snap.val();
+
+    // 검증 통과 후 내부 상태 설정
+    this._isHost = true;
+    this._roomId = cleanRoomId;
+    this._processedActions.clear();
 
     await this._db.ref(`games/${this._roomId}/meta`).update({ status: 'playing' });
 
@@ -217,9 +252,12 @@ class FirebaseSync {
     const actionRef = this._db.ref(`games/${this._roomId}/pendingAction`);
     const actionHandler = actionRef.on('value', snap => {
       const action = snap.val();
-      if (!action || action.timestamp <= this._lastActionTs) return;
+      if (!action || !action.timestamp) return;
+      const actionKey = `${action.timestamp}:${action.type}:${action.cardId}:${action.playerId}`;
+      if (this._processedActions.has(actionKey)) return;
+      this._processedActions.add(actionKey);
       this._lastActionTs = action.timestamp;
-      actionRef.remove();
+      actionRef.remove().catch(() => {});
       this._applyGuestAction(action);
     });
     this._offCallbacks.push(() => actionRef.off('value', actionHandler));
@@ -233,14 +271,21 @@ class FirebaseSync {
   // ---- 게스트 액션 전송 ----------------------------------------
   sendAction(action) {
     if (this._isHost || !this._roomId) return;
-    // Firebase set() rejects undefined — explicitly coerce to null
-    this._db.ref(`games/${this._roomId}/pendingAction`).set({
+    const payload = {
       type:            action.type            ?? null,
       playerId:        action.playerId        ?? null,
       cardId:          action.cardId          ?? null,
       targetPlayerId:  action.targetPlayerId  ?? null,
       targetHamsterId: action.targetHamsterId ?? null,
       timestamp:       Date.now()
+    };
+    const ref = this._db.ref(`games/${this._roomId}/pendingAction`);
+    ref.set(payload).catch(err => {
+      console.error('[Sync] sendAction failed, retrying...', err);
+      // 네트워크 순간 끊김 시 1회 재시도
+      setTimeout(() => {
+        if (this._roomId) ref.set(payload).catch(e => console.error('[Sync] sendAction retry failed:', e));
+      }, 1000);
     });
   }
 
